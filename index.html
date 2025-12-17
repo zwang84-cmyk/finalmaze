@@ -76,12 +76,16 @@
             pointer-events: none;
             z-index: 1000;
             background: #000;
-            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
-            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
         }
 
-        #flashlightOverlay.hidden {
+        #flashlightOverlay.hidden .mainLight {
             display: none;
+        }
+
+        #flashlightSvg {
+            position: absolute;
+            width: 0;
+            height: 0;
         }
     </style>
 </head>
@@ -154,31 +158,111 @@
             gameDiv.appendChild(mazeWrapper);
             document.body.appendChild(gameDiv);
 
+            // Create SVG mask for multiple flashlights
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.id = 'flashlightSvg';
+            svg.setAttribute('xmlns', svgNS);
+
+            const defs = document.createElementNS(svgNS, 'defs');
+
+            // Blur filter for soft edges
+            const filter = document.createElementNS(svgNS, 'filter');
+            filter.id = 'blur';
+            const feBlur = document.createElementNS(svgNS, 'feGaussianBlur');
+            feBlur.setAttribute('stdDeviation', '25');
+            filter.appendChild(feBlur);
+            defs.appendChild(filter);
+
+            // Smaller blur for anchor lights
+            const filterSmall = document.createElementNS(svgNS, 'filter');
+            filterSmall.id = 'blurSmall';
+            const feBlurSmall = document.createElementNS(svgNS, 'feGaussianBlur');
+            feBlurSmall.setAttribute('stdDeviation', '18');
+            filterSmall.appendChild(feBlurSmall);
+            defs.appendChild(filterSmall);
+
+            // Mask definition
+            const mask = document.createElementNS(svgNS, 'mask');
+            mask.id = 'flashlightMask';
+
+            // White background (shows black overlay = darkness)
+            const rect = document.createElementNS(svgNS, 'rect');
+            rect.setAttribute('width', '100%');
+            rect.setAttribute('height', '100%');
+            rect.setAttribute('fill', 'white');
+            mask.appendChild(rect);
+
+            // Main flashlight circle (black = hides overlay = light)
+            const mainLight = document.createElementNS(svgNS, 'circle');
+            mainLight.id = 'mainLight';
+            mainLight.classList.add('mainLight');
+            mainLight.setAttribute('r', '80');
+            mainLight.setAttribute('fill', 'black');
+            mainLight.setAttribute('filter', 'url(#blur)');
+            mask.appendChild(mainLight);
+
+            // Start anchor light (70% size)
+            const startLight = document.createElementNS(svgNS, 'circle');
+            startLight.id = 'startLight';
+            startLight.setAttribute('r', '56');
+            startLight.setAttribute('fill', 'black');
+            startLight.setAttribute('filter', 'url(#blurSmall)');
+            mask.appendChild(startLight);
+
+            // Exit anchor light (70% size)
+            const exitLight = document.createElementNS(svgNS, 'circle');
+            exitLight.id = 'exitLight';
+            exitLight.setAttribute('r', '56');
+            exitLight.setAttribute('fill', 'black');
+            exitLight.setAttribute('filter', 'url(#blurSmall)');
+            mask.appendChild(exitLight);
+
+            defs.appendChild(mask);
+            svg.appendChild(defs);
+            document.body.appendChild(svg);
+
             const overlay = document.createElement('div');
             overlay.id = 'flashlightOverlay';
+            overlay.style.mask = 'url(#flashlightMask)';
+            overlay.style.webkitMask = 'url(#flashlightMask)';
             document.body.appendChild(overlay);
 
             // Wait for maze image to load, then initialize game with correct position
             mazeImg.onload = function() {
-                initGame(character, overlay, mazeImg);
+                initGame(character, overlay, mazeImg, mainLight, startLight, exitLight);
             };
         }
 
-        function initGame(character, overlay, mazeImg) {
+        function initGame(character, overlay, mazeImg, mainLight, startLight, exitLight) {
             const moveSpeed = 5;
 
             // Calculate character spawn position relative to displayed maze
-            // The maze has a white border, and the top-left corridor entrance is just inside
             const mazeWidth = mazeImg.offsetWidth;
             const mazeHeight = mazeImg.offsetHeight;
+            const mazeRect = mazeImg.getBoundingClientRect();
 
             // Position at top-left corridor (percentage-based for scaling)
-            // Approximately 2.5% from left and 3% from top to be inside the corridor
             let posX = Math.round(mazeWidth * 0.025);
             let posY = Math.round(mazeHeight * 0.035);
 
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';
+
+            // Calculate static anchor positions in screen coordinates
+            // Start anchor: top-left inside maze
+            const startAnchorX = mazeRect.left + mazeWidth * 0.04;
+            const startAnchorY = mazeRect.top + mazeHeight * 0.05;
+
+            // Exit anchor: bottom-right inside maze (near the arrow exit)
+            const exitAnchorX = mazeRect.left + mazeWidth * 0.97;
+            const exitAnchorY = mazeRect.top + mazeHeight * 0.92;
+
+            // Position static anchor lights
+            startLight.setAttribute('cx', startAnchorX);
+            startLight.setAttribute('cy', startAnchorY);
+            exitLight.setAttribute('cx', exitAnchorX);
+            exitLight.setAttribute('cy', exitAnchorY);
 
             const keysPressed = {};
 
@@ -220,9 +304,8 @@
             let mouseY = 0;
 
             function updateFlashlightPosition() {
-                const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
-                overlay.style.webkitMaskImage = maskValue;
-                overlay.style.maskImage = maskValue;
+                mainLight.setAttribute('cx', mouseX);
+                mainLight.setAttribute('cy', mouseY);
             }
 
             window.addEventListener('mousemove', (e) => {
@@ -238,6 +321,7 @@
 
                 flashlightActive = true;
                 overlay.classList.remove('hidden');
+                mainLight.style.display = '';
                 updateFlashlightPosition();
 
                 flashlightTimer = setTimeout(() => {
@@ -248,7 +332,7 @@
             function endFlashlight() {
                 flashlightActive = false;
                 flashlightUses--;
-                overlay.classList.add('hidden');
+                mainLight.style.display = 'none';
                 if (flashlightTimer) {
                     clearTimeout(flashlightTimer);
                     flashlightTimer = null;

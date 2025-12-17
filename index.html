@@ -220,6 +220,66 @@
             const mazeWidth = mazeImg.offsetWidth;
             const mazeHeight = mazeImg.offsetHeight;
 
+            // Create off-screen canvas for collision detection
+            const collisionCanvas = document.createElement('canvas');
+            const collisionCtx = collisionCanvas.getContext('2d');
+            collisionCanvas.width = mazeImg.naturalWidth;
+            collisionCanvas.height = mazeImg.naturalHeight;
+            collisionCtx.drawImage(mazeImg, 0, 0);
+
+            // Scale factors to map displayed position to original image coordinates
+            const scaleX = mazeImg.naturalWidth / mazeWidth;
+            const scaleY = mazeImg.naturalHeight / mazeHeight;
+
+            // Check if a position hits a wall (white pixel)
+            function isWall(x, y) {
+                // Map displayed coordinates to original image coordinates
+                const imgX = Math.floor(x * scaleX);
+                const imgY = Math.floor(y * scaleY);
+
+                // Bounds check
+                if (imgX < 0 || imgX >= collisionCanvas.width || imgY < 0 || imgY >= collisionCanvas.height) {
+                    return true; // Out of bounds = wall
+                }
+
+                const pixel = collisionCtx.getImageData(imgX, imgY, 1, 1).data;
+                // White pixels (walls) have high RGB values
+                // Threshold: if average RGB > 200, it's a wall
+                const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
+                return brightness > 200;
+            }
+
+            // Check collision for character at given position
+            function canMoveTo(x, y) {
+                const charWidth = character.offsetWidth;
+                const charHeight = character.offsetHeight;
+
+                // Check multiple points around the character for tight collision
+                // Use smaller margin from edges for accuracy
+                const margin = 3;
+                const points = [
+                    // Center
+                    { x: x + charWidth / 2, y: y + charHeight / 2 },
+                    // Corners with margin
+                    { x: x + margin, y: y + margin },
+                    { x: x + charWidth - margin, y: y + margin },
+                    { x: x + margin, y: y + charHeight - margin },
+                    { x: x + charWidth - margin, y: y + charHeight - margin },
+                    // Edge midpoints
+                    { x: x + charWidth / 2, y: y + margin },
+                    { x: x + charWidth / 2, y: y + charHeight - margin },
+                    { x: x + margin, y: y + charHeight / 2 },
+                    { x: x + charWidth - margin, y: y + charHeight / 2 }
+                ];
+
+                for (const point of points) {
+                    if (isWall(point.x, point.y)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             // Position at top-left corridor (percentage-based for scaling)
             let posX = Math.round(mazeWidth * 0.025);
             let posY = Math.round(mazeHeight * 0.035);
@@ -334,17 +394,36 @@
             function gameLoop() {
                 if (gameWon || gameLost) return;
 
+                let newX = posX;
+                let newY = posY;
+
+                // Calculate intended movement
                 if (keysPressed['w']) {
-                    posY -= moveSpeed;
+                    newY -= moveSpeed;
                 }
                 if (keysPressed['s']) {
-                    posY += moveSpeed;
+                    newY += moveSpeed;
                 }
                 if (keysPressed['a']) {
-                    posX -= moveSpeed;
+                    newX -= moveSpeed;
                 }
                 if (keysPressed['d']) {
-                    posX += moveSpeed;
+                    newX += moveSpeed;
+                }
+
+                // Try combined movement first
+                if (canMoveTo(newX, newY)) {
+                    posX = newX;
+                    posY = newY;
+                } else {
+                    // Try horizontal only
+                    if (canMoveTo(newX, posY)) {
+                        posX = newX;
+                    }
+                    // Try vertical only
+                    if (canMoveTo(posX, newY)) {
+                        posY = newY;
+                    }
                 }
 
                 character.style.left = posX + 'px';

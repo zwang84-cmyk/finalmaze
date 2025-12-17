@@ -504,17 +504,22 @@
             }
 
             // Check if player is at a true dead end (only 1 direction open)
+            // Uses multiple check distances to avoid false triggers at intersections
             function isDeadEnd() {
-                const checkDistance = moveSpeed;
+                // Check at multiple distances - direction is open if ANY point is walkable
+                const checkDistances = [15, 30, 50];
+
+                function isDirectionOpen(dx, dy) {
+                    return checkDistances.some(d => canMoveTo(posX + dx * d, posY + dy * d));
+                }
+
                 let openDirections = 0;
+                if (isDirectionOpen(0, -1)) openDirections++; // Up
+                if (isDirectionOpen(0, 1)) openDirections++;  // Down
+                if (isDirectionOpen(-1, 0)) openDirections++; // Left
+                if (isDirectionOpen(1, 0)) openDirections++;  // Right
 
-                // Check all 4 directions
-                if (canMoveTo(posX, posY - checkDistance)) openDirections++; // Up
-                if (canMoveTo(posX, posY + checkDistance)) openDirections++; // Down
-                if (canMoveTo(posX - checkDistance, posY)) openDirections++; // Left
-                if (canMoveTo(posX + checkDistance, posY)) openDirections++; // Right
-
-                // True dead end = only 1 direction open (the way back)
+                // True dead end = only 1 direction has any open space (the way back)
                 return openDirections <= 1;
             }
 

@@ -315,11 +315,11 @@
 
             if (gameState === 'playing' && characterLoaded) {
                 // Draw character at fixed position in upper-left area
-                // Character size: 50x50 pixels, positioned at (60, 60)
+                // Character size: 45x45 pixels (90% scale), positioned at (60, 60)
                 const charX = 60;
                 const charY = 60;
-                const charWidth = 50;
-                const charHeight = 50;
+                const charWidth = 45;
+                const charHeight = 45;
 
                 ctx.drawImage(characterImg, charX, charY, charWidth, charHeight);
             }

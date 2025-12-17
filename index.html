@@ -105,6 +105,33 @@
             max-height: 100vh;
             object-fit: contain;
         }
+
+        #loseScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #loseScreen img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        #restartClickArea {
+            position: absolute;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -209,6 +236,7 @@
             };
 
             let gameWon = false;
+            let gameLost = false;
 
             const keysPressed = {};
 
@@ -255,8 +283,56 @@
                 document.body.appendChild(winScreen);
             }
 
+            function triggerLose() {
+                gameLost = true;
+
+                // Hide game elements
+                document.getElementById('game').style.display = 'none';
+                overlay.style.display = 'none';
+
+                // Show lose screen
+                const loseScreen = document.createElement('div');
+                loseScreen.id = 'loseScreen';
+
+                const loseImg = document.createElement('img');
+                loseImg.id = 'loseImage';
+                loseImg.src = 'finalmaze/finalmaze/fail.png';
+                loseImg.alt = 'You Failed';
+
+                const restartArea = document.createElement('div');
+                restartArea.id = 'restartClickArea';
+
+                loseScreen.appendChild(loseImg);
+                loseScreen.appendChild(restartArea);
+                document.body.appendChild(loseScreen);
+
+                // Position restart click area after image loads
+                loseImg.onload = function() {
+                    const rect = loseImg.getBoundingClientRect();
+                    const naturalWidth = loseImg.naturalWidth;
+                    const naturalHeight = loseImg.naturalHeight;
+                    const scale = rect.width / naturalWidth;
+
+                    // "Start Over" text position (approximately center-right, below "You failed")
+                    const textX = naturalWidth * 0.45;
+                    const textY = naturalHeight * 0.52;
+                    const textWidth = naturalWidth * 0.35;
+                    const textHeight = naturalHeight * 0.12;
+
+                    restartArea.style.left = (rect.left + textX * scale) + 'px';
+                    restartArea.style.top = (rect.top + textY * scale) + 'px';
+                    restartArea.style.width = (textWidth * scale) + 'px';
+                    restartArea.style.height = (textHeight * scale) + 'px';
+                };
+
+                // Restart game on click
+                restartArea.addEventListener('click', function() {
+                    location.reload();
+                });
+            }
+
             function gameLoop() {
-                if (gameWon) return;
+                if (gameWon || gameLost) return;
 
                 if (keysPressed['w']) {
                     posY -= moveSpeed;
@@ -325,6 +401,11 @@
                 if (flashlightTimer) {
                     clearTimeout(flashlightTimer);
                     flashlightTimer = null;
+                }
+
+                // Check for lose condition: all flashlights used and not won
+                if (flashlightUses <= 0 && !gameWon) {
+                    triggerLose();
                 }
             }
 

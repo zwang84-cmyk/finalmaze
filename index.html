@@ -438,6 +438,11 @@
                 character.style.left = posX + 'px';
                 character.style.top = posY + 'px';
 
+                // Update character glow position when flashlight is not active
+                if (!flashlightActive) {
+                    updateCharacterGlow();
+                }
+
                 // Check win condition
                 if (checkWinCondition()) {
                     triggerWin();
@@ -456,8 +461,27 @@
             let mouseX = 0;
             let mouseY = 0;
 
+            // Get character's screen position for glow
+            function getCharacterScreenPos() {
+                const charRect = character.getBoundingClientRect();
+                return {
+                    x: charRect.left + charRect.width / 2,
+                    y: charRect.top + charRect.height / 2
+                };
+            }
+
+            // Update overlay with mouse-controlled flashlight
             function updateFlashlightPosition() {
                 const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
+                overlay.style.webkitMaskImage = maskValue;
+                overlay.style.maskImage = maskValue;
+            }
+
+            // Update overlay with small character glow only (when flashlight inactive)
+            function updateCharacterGlow() {
+                const charPos = getCharacterScreenPos();
+                // Small glow around character - much smaller than flashlight
+                const maskValue = `radial-gradient(circle at ${charPos.x}px ${charPos.y}px, transparent 0px, transparent 20px, rgba(0,0,0,0.5) 30px, black 40px)`;
                 overlay.style.webkitMaskImage = maskValue;
                 overlay.style.maskImage = maskValue;
             }
@@ -474,7 +498,6 @@
                 if (flashlightUses <= 0 || flashlightActive) return;
 
                 flashlightActive = true;
-                overlay.classList.remove('hidden');
                 updateFlashlightPosition();
 
                 flashlightTimer = setTimeout(() => {
@@ -485,7 +508,8 @@
             function endFlashlight() {
                 flashlightActive = false;
                 flashlightUses--;
-                overlay.classList.add('hidden');
+                // Switch to character glow only (keep overlay visible with small glow)
+                updateCharacterGlow();
                 if (flashlightTimer) {
                     clearTimeout(flashlightTimer);
                     flashlightTimer = null;

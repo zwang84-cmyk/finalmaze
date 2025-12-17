@@ -76,12 +76,6 @@
             pointer-events: none;
             z-index: 1000;
             background: #000;
-            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px);
-            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px);
-        }
-
-        #flashlightOverlay.hidden {
-            display: none;
         }
 
         #winScreen {
@@ -132,28 +126,6 @@
             position: absolute;
             cursor: pointer;
         }
-
-        #wrongWayScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1500;
-        }
-
-        #wrongWayScreen img {
-            display: block;
-            width: auto;
-            height: auto;
-            max-width: 100vw;
-            max-height: 100vh;
-            object-fit: contain;
-        }
     </style>
 </head>
 <body>
@@ -180,7 +152,6 @@
             const scale = displayedWidth / naturalWidth;
 
             // "Start Exploration" text approximate position in original image
-            // Based on the image, it's near the bottom center
             const textX = naturalWidth * 0.28;
             const textY = naturalHeight * 0.72;
             const textWidth = naturalWidth * 0.44;
@@ -266,7 +237,6 @@
 
                 const pixel = collisionCtx.getImageData(imgX, imgY, 1, 1).data;
                 // White pixels (walls) have high RGB values
-                // Threshold: if average RGB > 200, it's a wall
                 const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
                 return brightness > 200;
             }
@@ -284,15 +254,15 @@
             }
 
             // Position at top-left corridor - adjusted so CENTER is on black pixel
-            const charWidth = 30; // Character width from CSS
-            const charHeight = charWidth; // Approximate square
+            const charWidth = 30;
+            const charHeight = charWidth;
             let posX = Math.round(mazeWidth * 0.035 - charWidth / 2);
             let posY = Math.round(mazeHeight * 0.05 - charHeight / 2);
 
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';
 
-            // Define invisible exit zone at bottom-right (near the exit arrow)
+            // Define invisible exit zone at bottom-right
             const exitZone = {
                 x: mazeWidth * 0.96,
                 y: mazeHeight * 0.88,
@@ -302,16 +272,6 @@
 
             let gameWon = false;
             let gameLost = false;
-            let movementFrozen = false;
-
-            // Wrong way detection state - detects being stuck in a small area
-            let movementHistory = [];
-            let wrongWayCheckInterval = null;
-            let wrongWayEnabled = false;
-            const OBSERVATION_WINDOW = 6000; // 6 seconds observation window
-            const CHECK_INTERVAL = 200; // Check every 200ms
-            const STUCK_THRESHOLD = 60; // If net displacement < 60px over 6 seconds while moving, player is stuck
-            const MIN_TOTAL_MOVEMENT = 150; // Must have moved at least 150px total to be considered "trying to move"
 
             const keysPressed = {};
 
@@ -328,7 +288,6 @@
                 const charWidth = character.offsetWidth;
                 const charHeight = character.offsetHeight;
 
-                // Check if character center is within exit zone
                 const charCenterX = posX + charWidth / 2;
                 const charCenterY = posY + charHeight / 2;
 
@@ -388,7 +347,6 @@
                     const naturalHeight = loseImg.naturalHeight;
                     const scale = rect.width / naturalWidth;
 
-                    // "Start Over" text position (approximately center-right, below "You failed")
                     const textX = naturalWidth * 0.45;
                     const textY = naturalHeight * 0.52;
                     const textWidth = naturalWidth * 0.35;
@@ -412,21 +370,18 @@
                 let newX = posX;
                 let newY = posY;
 
-                // Block movement while frozen (during wrong way message)
-                if (!movementFrozen) {
-                    // Calculate intended movement
-                    if (keysPressed['w']) {
-                        newY -= moveSpeed;
-                    }
-                    if (keysPressed['s']) {
-                        newY += moveSpeed;
-                    }
-                    if (keysPressed['a']) {
-                        newX -= moveSpeed;
-                    }
-                    if (keysPressed['d']) {
-                        newX += moveSpeed;
-                    }
+                // Calculate intended movement using WASD
+                if (keysPressed['w']) {
+                    newY -= moveSpeed;
+                }
+                if (keysPressed['s']) {
+                    newY += moveSpeed;
+                }
+                if (keysPressed['a']) {
+                    newX -= moveSpeed;
+                }
+                if (keysPressed['d']) {
+                    newX += moveSpeed;
                 }
 
                 // Try combined movement first
@@ -461,7 +416,7 @@
                 requestAnimationFrame(gameLoop);
             }
 
-            // Flashlight system - declare BEFORE gameLoop starts
+            // Flashlight system
             let flashlightUses = 3;
             let flashlightActive = false;
             let flashlightTimer = null;
@@ -477,7 +432,7 @@
                 };
             }
 
-            // Update overlay with mouse-controlled flashlight
+            // Update overlay with mouse-controlled flashlight (large radius)
             function updateFlashlightPosition() {
                 const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px)`;
                 overlay.style.webkitMaskImage = maskValue;
@@ -487,7 +442,6 @@
             // Update overlay with small character glow only (when flashlight inactive)
             function updateCharacterGlow() {
                 const charPos = getCharacterScreenPos();
-                // Small glow around character - much smaller than flashlight
                 const maskValue = `radial-gradient(circle at ${charPos.x}px ${charPos.y}px, transparent 0px, transparent 20px, rgba(0,0,0,0.5) 30px, black 40px)`;
                 overlay.style.webkitMaskImage = maskValue;
                 overlay.style.maskImage = maskValue;
@@ -502,12 +456,9 @@
             });
 
             function startFlashlight() {
-                if (flashlightUses <= 0 || flashlightActive) return;
+                if (flashlightUses <= 0 || flashlightActive || gameWon || gameLost) return;
 
-                // Stop wrong way detection when flashlight is active
-                stopWrongWayDetection();
-                wrongWayEnabled = false;
-
+                flashlightUses--;
                 flashlightActive = true;
                 updateFlashlightPosition();
 
@@ -516,118 +467,10 @@
                 }, 15000);
             }
 
-            // Wrong way detection system - detects being stuck in a small area
-            // Only active AFTER flashlight ends (with 2 second delay)
-            function startWrongWayDetection() {
-                movementHistory = [];
-                wrongWayEnabled = false;
-
-                // Wait 2 seconds after flashlight ends before enabling detection
-                setTimeout(() => {
-                    if (gameWon || gameLost || flashlightActive) return;
-                    wrongWayEnabled = true;
-                }, 2000);
-
-                wrongWayCheckInterval = setInterval(() => {
-                    if (gameWon || gameLost || movementFrozen || flashlightActive || !wrongWayEnabled) return;
-
-                    const now = Date.now();
-
-                    // Record current position
-                    movementHistory.push({ x: posX, y: posY, time: now });
-
-                    // Keep only last 6 seconds of history
-                    movementHistory = movementHistory.filter(p => now - p.time < OBSERVATION_WINDOW);
-
-                    // Check if stuck (need at least 6 seconds of data)
-                    if (checkIfStuck()) {
-                        triggerWrongWay();
-                    }
-                }, CHECK_INTERVAL);
-            }
-
-            function stopWrongWayDetection() {
-                if (wrongWayCheckInterval) {
-                    clearInterval(wrongWayCheckInterval);
-                    wrongWayCheckInterval = null;
-                }
-                movementHistory = [];
-                wrongWayEnabled = false;
-            }
-
-            function checkIfStuck() {
-                // Need at least 6 seconds of movement history
-                if (movementHistory.length < 25) return false; // ~5 seconds at 200ms intervals
-
-                const oldest = movementHistory[0];
-                const newest = movementHistory[movementHistory.length - 1];
-                const timeDiff = newest.time - oldest.time;
-
-                // Must have at least 5 seconds of data
-                if (timeDiff < 5000) return false;
-
-                // Calculate NET displacement (straight line from start to end)
-                const netDx = newest.x - oldest.x;
-                const netDy = newest.y - oldest.y;
-                const netDisplacement = Math.sqrt(netDx * netDx + netDy * netDy);
-
-                // Calculate TOTAL movement (sum of all individual movements)
-                let totalMovement = 0;
-                for (let i = 1; i < movementHistory.length; i++) {
-                    const dx = movementHistory[i].x - movementHistory[i-1].x;
-                    const dy = movementHistory[i].y - movementHistory[i-1].y;
-                    totalMovement += Math.sqrt(dx * dx + dy * dy);
-                }
-
-                // Player is STUCK if:
-                // 1. They've been moving a lot (total movement > threshold)
-                // 2. But haven't made progress (net displacement is small)
-                // This means they're moving back and forth in the same area
-                if (totalMovement >= MIN_TOTAL_MOVEMENT && netDisplacement < STUCK_THRESHOLD) {
-                    return true;
-                }
-
-                return false;
-            }
-
-            function triggerWrongWay() {
-                stopWrongWayDetection();
-
-                // Consume a flashlight use
-                flashlightUses--;
-
-                // Freeze movement
-                movementFrozen = true;
-
-                // Show wrong way screen
-                const wrongWayScreen = document.createElement('div');
-                wrongWayScreen.id = 'wrongWayScreen';
-                const wrongWayImg = document.createElement('img');
-                wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
-                wrongWayImg.alt = 'You take the wrong way';
-                wrongWayScreen.appendChild(wrongWayImg);
-                document.body.appendChild(wrongWayScreen);
-
-                // After 2 seconds, check if FAILED or continue
-                setTimeout(() => {
-                    wrongWayScreen.remove();
-                    movementFrozen = false;
-
-                    if (flashlightUses <= 0) {
-                        // No flashlights left after wrong way = FAILED
-                        triggerLose();
-                    } else {
-                        // Have flashlights remaining - start next one
-                        startFlashlight();
-                    }
-                }, 2000);
-            }
-
             function endFlashlight() {
                 flashlightActive = false;
-                flashlightUses--;
 
-                // Switch to character glow only - darkness overlay stays active
+                // Switch to character glow only
                 updateCharacterGlow();
 
                 if (flashlightTimer) {
@@ -635,26 +478,25 @@
                     flashlightTimer = null;
                 }
 
-                // Start wrong way detection (with 2 second delay before enabling)
-                // Detects if player gets stuck moving in a small area
-                startWrongWayDetection();
+                // Check if all flashlights used and not at exit = FAILED
+                if (flashlightUses <= 0 && !gameWon) {
+                    triggerLose();
+                }
             }
 
-            // Press C to activate next flashlight (disabled during frozen state)
+            // Press Space to activate flashlight
             document.addEventListener('keydown', (e) => {
-                if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0 && !movementFrozen) {
+                if (e.code === 'Space' && !flashlightActive && flashlightUses > 0 && !gameWon && !gameLost) {
+                    e.preventDefault();
                     startFlashlight();
                 }
             });
 
-            // Initialize character glow first, then start flashlight
+            // Initialize with character glow (dark overlay with small light)
             updateCharacterGlow();
 
             // Start game loop
             gameLoop();
-
-            // Start flashlight immediately
-            startFlashlight();
         }
     </script>
 </body>

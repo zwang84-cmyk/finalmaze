@@ -303,21 +303,34 @@
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(mazeImg, 0, 0);
 
-            // Scale coordinates to maze image size
+            // Use circular hitbox centered on character (radius: 12 pixels)
+            const charSize = 40;
+            const hitboxRadius = 12;
+            const centerX = x + charSize / 2;
+            const centerY = y + charSize / 2;
+
+            // Check collision points around a circle
             const scaleX = mazeImg.width / canvas.width;
             const scaleY = mazeImg.height / canvas.height;
-            const checkX = Math.floor(x * scaleX);
-            const checkY = Math.floor(y * scaleY);
 
-            try {
-                const pixelData = tempCtx.getImageData(checkX, checkY, 1, 1).data;
-                // If pixel is white (wall), collision detected
-                // White pixels have high RGB values
-                const isWall = pixelData[0] > 200 && pixelData[1] > 200 && pixelData[2] > 200;
-                return isWall;
-            } catch (e) {
-                return false;
+            // Check 8 points around the circular hitbox
+            const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+            for (let angle of angles) {
+                const rad = (angle * Math.PI) / 180;
+                const checkX = Math.floor((centerX + Math.cos(rad) * hitboxRadius) * scaleX);
+                const checkY = Math.floor((centerY + Math.sin(rad) * hitboxRadius) * scaleY);
+
+                try {
+                    const pixelData = tempCtx.getImageData(checkX, checkY, 1, 1).data;
+                    // If pixel is white (wall), collision detected
+                    const isWall = pixelData[0] > 200 && pixelData[1] > 200 && pixelData[2] > 200;
+                    if (isWall) return true;
+                } catch (e) {
+                    return false;
+                }
             }
+
+            return false;
         }
 
         function winGame() {
@@ -332,9 +345,9 @@
 
             if (gameState === 'playing' && characterLoaded) {
                 // Draw character at player position
-                // Character size: 45x45 pixels (90% scale)
-                const charWidth = 45;
-                const charHeight = 45;
+                // Character size: 40x40 pixels (reduced for better navigation)
+                const charWidth = 40;
+                const charHeight = 40;
 
                 ctx.drawImage(characterImg, player.x, player.y, charWidth, charHeight);
             }

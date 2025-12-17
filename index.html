@@ -285,26 +285,8 @@
         }
 
         function updatePlayer() {
-            if (gameState !== 'playing') return;
-
-            let newX = player.x;
-            let newY = player.y;
-
-            // Movement with WASD
-            if (keys['w']) newY -= player.speed;
-            if (keys['s']) newY += player.speed;
-            if (keys['a']) newX -= player.speed;
-            if (keys['d']) newX += player.speed;
-
-            // Check collision with walls
-            if (mazeLoaded && !checkCollision(newX, newY)) {
-                player.x = newX;
-                player.y = newY;
-            }
-
-            // Keep player in bounds
-            player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
-            player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+            // Character movement disabled - character remains stationary
+            return;
         }
 
         function checkCollision(x, y) {

@@ -528,30 +528,31 @@
                     flashlightTimer = null;
                 }
 
-                // If player hasn't won, check for TRUE dead end condition
+                // If player hasn't won AND at a TRUE dead end, show WRONG WAY
                 if (!gameWon && isDeadEnd()) {
-                    if (flashlightUses <= 0) {
-                        // No flashlights left AND at true dead end = FAILED
-                        triggerLose();
-                    } else {
-                        // At dead end but have flashlights remaining - show WRONG WAY
-                        movementFrozen = true;
+                    movementFrozen = true;
 
-                        const wrongWayScreen = document.createElement('div');
-                        wrongWayScreen.id = 'wrongWayScreen';
-                        const wrongWayImg = document.createElement('img');
-                        wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
-                        wrongWayImg.alt = 'You take the wrong way';
-                        wrongWayScreen.appendChild(wrongWayImg);
-                        document.body.appendChild(wrongWayScreen);
+                    const wrongWayScreen = document.createElement('div');
+                    wrongWayScreen.id = 'wrongWayScreen';
+                    const wrongWayImg = document.createElement('img');
+                    wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
+                    wrongWayImg.alt = 'You take the wrong way';
+                    wrongWayScreen.appendChild(wrongWayImg);
+                    document.body.appendChild(wrongWayScreen);
 
-                        // After 2 seconds, hide message and auto-start next flashlight
-                        setTimeout(() => {
-                            wrongWayScreen.remove();
-                            movementFrozen = false;
+                    // After 2 seconds, check if FAILED or continue
+                    setTimeout(() => {
+                        wrongWayScreen.remove();
+                        movementFrozen = false;
+
+                        if (flashlightUses <= 0) {
+                            // WRONG WAY triggered AND no flashlights left = FAILED
+                            triggerLose();
+                        } else {
+                            // Have flashlights remaining - auto-start next
                             startFlashlight();
-                        }, 2000);
-                    }
+                        }
+                    }, 2000);
                 }
                 // If NOT at dead end: player continues freely with character glow
                 // Press C to use next flashlight when ready

@@ -12,374 +12,55 @@
         }
 
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            overflow: auto;
             background: #1a1a1a;
-            font-family: 'Creepster', cursive, Arial, sans-serif;
-            overflow: hidden;
         }
 
-        #gameContainer {
+        #game {
+            display: inline-block;
+        }
+
+        #maze {
             position: relative;
-            width: 1200px;
-            height: 800px;
-            border: 3px solid #333;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-        }
-
-        /* Fixed maze background - NEVER changes */
-        #mazeBackground {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('finalmaze/maze.png');
+            width: 4866px;
+            height: 3160px;
+            background-image: url("finalmaze/maze.png");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            z-index: 1;
         }
 
-        /* Game canvas layer on top of fixed maze */
-        #gameCanvas {
+        #character {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-        }
-
-        /* Overlay screens */
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: 10;
-            display: none;
-        }
-
-        .overlay.active {
-            display: block;
-        }
-
-        #startOverlay {
-            background-image: url('finalmaze/start.png');
-        }
-
-        #startHotspot {
-            position: absolute;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 550px;
-            height: 110px;
-            z-index: 11;
-            cursor: pointer;
-            display: none;
-        }
-
-        #startHotspot.active {
-            display: block;
-        }
-
-        #rightwayOverlay {
-            background-image: url('finalmaze/rightway.png');
-        }
-
-        #wrongwayOverlay {
-            background-image: url('finalmaze/wrongway.png');
-        }
-
-        #failOverlay {
-            background-image: url('finalmaze/fail.png');
-            cursor: pointer;
+            left: 30px;
+            top: 30px;
+            width: 24px;
+            height: auto;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <!-- Fixed maze background - this NEVER changes -->
-        <div id="mazeBackground"></div>
-
-        <!-- Game canvas for player and effects -->
-        <canvas id="gameCanvas"></canvas>
-
-        <!-- Overlays for different game states -->
-        <div id="startOverlay" class="overlay active"></div>
-        <div id="startHotspot" class="active"></div>
-        <div id="rightwayOverlay" class="overlay"></div>
-        <div id="wrongwayOverlay" class="overlay"></div>
-        <div id="failOverlay" class="overlay"></div>
+    <div id="game">
+        <div id="maze">
+            <img id="character" src="finalmaze/character.png" />
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const character = document.getElementById("character");
+        let x = 30;
+        let y = 30;
+        const step = 5;
 
-        // Set canvas size to match container
-        canvas.width = 1200;
-        canvas.height = 800;
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "w") y -= step;
+            if (e.key === "s") y += step;
+            if (e.key === "a") x -= step;
+            if (e.key === "d") x += step;
 
-        // Game state
-        let gameState = 'start'; // start, playing, won, failed
-        let player = {
-            x: 50,
-            y: 50,
-            size: 15,
-            speed: 3
-        };
-
-        let flashlights = 3;
-        let flashlightActive = false;
-        let flashlightTimer = 0;
-        const FLASHLIGHT_DURATION = 12000; // 12 seconds in milliseconds
-        let lastTime = Date.now();
-
-        // Darkness overlay
-        let darknessAlpha = 0.95; // Very dark when flashlight is off
-
-        // Mouse position for flashlight
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
-
-        // Keys pressed
-        const keys = {};
-
-        // Load maze image for collision detection
-        const mazeImg = new Image();
-        mazeImg.src = 'finalmaze/maze.png';
-        let mazeLoaded = false;
-
-        mazeImg.onload = () => {
-            mazeLoaded = true;
-            console.log('Maze loaded for collision detection');
-        };
-
-        // Load character image
-        const characterImg = new Image();
-        characterImg.src = 'finalmaze/character.png';
-        let characterLoaded = false;
-
-        characterImg.onload = () => {
-            characterLoaded = true;
-            console.log('Character loaded');
-        };
-
-        // Event listeners
-        document.getElementById('startHotspot').addEventListener('click', startGame);
-
-        document.getElementById('failOverlay').addEventListener('click', () => {
-            resetGame();
+            character.style.left = x + "px";
+            character.style.top = y + "px";
         });
-
-        document.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
-        });
-
-        document.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
-        });
-
-        // Track mouse position for flashlight
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
-
-        function startGame() {
-            gameState = 'playing';
-            // Auto-activate flashlight when game starts
-            flashlightActive = true;
-            darknessAlpha = 0.98;
-            document.getElementById('startOverlay').classList.remove('active');
-            document.getElementById('startHotspot').classList.remove('active');
-            gameLoop();
-        }
-
-        function resetGame() {
-            gameState = 'start';
-            player.x = 50;
-            player.y = 50;
-            flashlights = 3;
-            flashlightActive = false;
-            flashlightTimer = 0;
-            darknessAlpha = 0.95;
-
-            document.getElementById('failOverlay').classList.remove('active');
-            document.getElementById('wrongwayOverlay').classList.remove('active');
-            document.getElementById('rightwayOverlay').classList.remove('active');
-            document.getElementById('startOverlay').classList.add('active');
-            document.getElementById('startHotspot').classList.add('active');
-        }
-
-        function activateFlashlight() {
-            if (flashlights > 0 && !flashlightActive) {
-                flashlights--;
-                flashlightActive = true;
-                flashlightTimer = FLASHLIGHT_DURATION;
-                darknessAlpha = 0.3;
-
-                // Check if player is on the right path
-                checkPath();
-            }
-        }
-
-        function checkPath() {
-            // Simple path checking - if player is in certain areas
-            // You can customize this based on the actual maze solution
-            const isOnRightPath = player.x > 600 && player.y > 400;
-
-            if (isOnRightPath) {
-                showOverlay('rightwayOverlay', 2000);
-            } else {
-                showOverlay('wrongwayOverlay', 2000);
-            }
-        }
-
-        function showOverlay(overlayId, duration) {
-            const overlay = document.getElementById(overlayId);
-            overlay.classList.add('active');
-
-            setTimeout(() => {
-                overlay.classList.remove('active');
-            }, duration);
-        }
-
-        function updateFlashlight(deltaTime) {
-            if (flashlightActive) {
-                flashlightTimer -= deltaTime;
-
-                if (flashlightTimer <= 0) {
-                    flashlightActive = false;
-                    darknessAlpha = 0.95;
-
-                    // Check if out of flashlights
-                    if (flashlights === 0) {
-                        // Check if player reached the exit
-                        if (!checkWinCondition()) {
-                            gameOver();
-                        }
-                    }
-                }
-            }
-        }
-
-        function checkWinCondition() {
-            // Check if player is near the exit (bottom right area with arrow)
-            return player.x > 1100 && player.y > 700;
-        }
-
-        function gameOver() {
-            gameState = 'failed';
-            document.getElementById('failOverlay').classList.add('active');
-        }
-
-        function updatePlayer() {
-            // Character movement disabled - character remains stationary
-            return;
-        }
-
-        function checkCollision(x, y) {
-            if (!mazeLoaded) return false;
-
-            // Create a temporary canvas to read pixel data from the maze
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = mazeImg.width;
-            tempCanvas.height = mazeImg.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(mazeImg, 0, 0);
-
-            // Use circular hitbox centered on character (radius: 12 pixels)
-            const charSize = 40;
-            const hitboxRadius = 12;
-            const centerX = x + charSize / 2;
-            const centerY = y + charSize / 2;
-
-            // Check collision points around a circle
-            const scaleX = mazeImg.width / canvas.width;
-            const scaleY = mazeImg.height / canvas.height;
-
-            // Check 8 points around the circular hitbox
-            const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-            for (let angle of angles) {
-                const rad = (angle * Math.PI) / 180;
-                const checkX = Math.floor((centerX + Math.cos(rad) * hitboxRadius) * scaleX);
-                const checkY = Math.floor((centerY + Math.sin(rad) * hitboxRadius) * scaleY);
-
-                try {
-                    const pixelData = tempCtx.getImageData(checkX, checkY, 1, 1).data;
-                    // If pixel is white (wall), collision detected
-                    const isWall = pixelData[0] > 200 && pixelData[1] > 200 && pixelData[2] > 200;
-                    if (isWall) return true;
-                } catch (e) {
-                    return false;
-                }
-            }
-
-            return false;
-        }
-
-        function winGame() {
-            gameState = 'won';
-            alert('Congratulations! You escaped the Labyrinth of Shadows!');
-            resetGame();
-        }
-
-        function draw() {
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (gameState === 'playing' && characterLoaded) {
-                // Draw character at player position (no camera transform - show full maze)
-                const charWidth = 40;
-                const charHeight = 40;
-
-                ctx.drawImage(characterImg, player.x, player.y, charWidth, charHeight);
-
-                // Draw darkness overlay with flashlight effect
-                if (flashlightActive) {
-                    ctx.save();
-
-                    // Create circular flashlight gradient following mouse
-                    const gradient = ctx.createRadialGradient(
-                        mouseX, mouseY, 0,
-                        mouseX, mouseY, 150
-                    );
-                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                    gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.5)');
-                    gradient.addColorStop(1, `rgba(0, 0, 0, ${darknessAlpha})`);
-
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.restore();
-                }
-            }
-        }
-
-        function gameLoop() {
-            const currentTime = Date.now();
-            const deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
-
-            updatePlayer();
-            updateFlashlight(deltaTime);
-            draw();
-
-            if (gameState === 'playing') {
-                requestAnimationFrame(gameLoop);
-            }
-        }
     </script>
 </body>
 </html>

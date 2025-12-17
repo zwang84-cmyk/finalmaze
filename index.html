@@ -132,6 +132,28 @@
             position: absolute;
             cursor: pointer;
         }
+
+        #wrongWayScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+
+        #wrongWayScreen img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +302,7 @@
 
             let gameWon = false;
             let gameLost = false;
+            let movementFrozen = false;
 
             const keysPressed = {};
 
@@ -380,18 +403,21 @@
                 let newX = posX;
                 let newY = posY;
 
-                // Calculate intended movement
-                if (keysPressed['w']) {
-                    newY -= moveSpeed;
-                }
-                if (keysPressed['s']) {
-                    newY += moveSpeed;
-                }
-                if (keysPressed['a']) {
-                    newX -= moveSpeed;
-                }
-                if (keysPressed['d']) {
-                    newX += moveSpeed;
+                // Block movement while frozen (during wrong way message)
+                if (!movementFrozen) {
+                    // Calculate intended movement
+                    if (keysPressed['w']) {
+                        newY -= moveSpeed;
+                    }
+                    if (keysPressed['s']) {
+                        newY += moveSpeed;
+                    }
+                    if (keysPressed['a']) {
+                        newX -= moveSpeed;
+                    }
+                    if (keysPressed['d']) {
+                        newX += moveSpeed;
+                    }
                 }
 
                 // Try combined movement first
@@ -465,15 +491,37 @@
                     flashlightTimer = null;
                 }
 
-                // Check for lose condition: all flashlights used and not won
-                if (flashlightUses <= 0 && !gameWon) {
-                    triggerLose();
+                // If player hasn't won yet, trigger dead-end penalty
+                if (!gameWon) {
+                    // Check for lose condition: all flashlights used
+                    if (flashlightUses <= 0) {
+                        triggerLose();
+                        return;
+                    }
+
+                    // Freeze movement and show wrong way message
+                    movementFrozen = true;
+
+                    const wrongWayScreen = document.createElement('div');
+                    wrongWayScreen.id = 'wrongWayScreen';
+                    const wrongWayImg = document.createElement('img');
+                    wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
+                    wrongWayImg.alt = 'You take the wrong way';
+                    wrongWayScreen.appendChild(wrongWayImg);
+                    document.body.appendChild(wrongWayScreen);
+
+                    // After 2 seconds, hide message and start next flashlight
+                    setTimeout(() => {
+                        wrongWayScreen.remove();
+                        movementFrozen = false;
+                        startFlashlight();
+                    }, 2000);
                 }
             }
 
-            // Press C to activate next flashlight
+            // Press C to activate next flashlight (disabled during frozen state)
             document.addEventListener('keydown', (e) => {
-                if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0) {
+                if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0 && !movementFrozen) {
                     startFlashlight();
                 }
             });

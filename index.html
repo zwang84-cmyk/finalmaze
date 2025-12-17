@@ -11,20 +11,28 @@
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
             background-color: #000;
             min-height: 100vh;
+            overflow: auto;
+        }
+
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .maze-container {
             position: relative;
+            display: inline-block;
         }
 
         .maze-container img.maze {
             display: block;
+            max-width: none;
+            height: auto;
         }
 
         .maze-container img.character {

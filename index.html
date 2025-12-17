@@ -528,17 +528,13 @@
                     flashlightTimer = null;
                 }
 
-                // If player hasn't won yet, check conditions
-                if (!gameWon) {
-                    // Check for lose condition: all flashlights used
+                // If player hasn't won, check for TRUE dead end condition
+                if (!gameWon && isDeadEnd()) {
                     if (flashlightUses <= 0) {
+                        // No flashlights left AND at true dead end = FAILED
                         triggerLose();
-                        return;
-                    }
-
-                    // Only trigger WRONG WAY if player is at a TRUE dead end
-                    if (isDeadEnd()) {
-                        // Freeze movement and show wrong way message
+                    } else {
+                        // At dead end but have flashlights remaining - show WRONG WAY
                         movementFrozen = true;
 
                         const wrongWayScreen = document.createElement('div');
@@ -549,17 +545,16 @@
                         wrongWayScreen.appendChild(wrongWayImg);
                         document.body.appendChild(wrongWayScreen);
 
-                        // After 2 seconds, hide message and start next flashlight
+                        // After 2 seconds, hide message and auto-start next flashlight
                         setTimeout(() => {
                             wrongWayScreen.remove();
                             movementFrozen = false;
                             startFlashlight();
                         }, 2000);
-                    } else {
-                        // Not at a dead end - just start next flashlight without penalty
-                        startFlashlight();
                     }
                 }
+                // If NOT at dead end: player continues freely with character glow
+                // Press C to use next flashlight when ready
             }
 
             // Press C to activate next flashlight (disabled during frozen state)

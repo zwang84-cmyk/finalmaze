@@ -304,6 +304,22 @@
             let gameLost = false;
             let movementFrozen = false;
 
+            // Wrong way detection state
+            let movementHistory = [];
+            let distanceHistory = [];
+            let wrongWayCheckInterval = null;
+            const SUSTAINED_TIME = 1500; // 1.5 seconds of sustained wrong movement
+            const CHECK_INTERVAL = 200; // Check every 200ms
+
+            // Calculate distance to exit
+            function getDistanceToExit() {
+                const charCenterX = posX + character.offsetWidth / 2;
+                const charCenterY = posY + character.offsetHeight / 2;
+                const exitCenterX = exitZone.x + exitZone.width / 2;
+                const exitCenterY = exitZone.y + exitZone.height / 2;
+                return Math.sqrt(Math.pow(charCenterX - exitCenterX, 2) + Math.pow(charCenterY - exitCenterY, 2));
+            }
+
             const keysPressed = {};
 
             document.addEventListener('keydown', (e) => {
@@ -498,69 +514,156 @@
                 flashlightActive = true;
                 updateFlashlightPosition();
 
+                // Start wrong way detection
+                startWrongWayDetection();
+
                 flashlightTimer = setTimeout(() => {
                     endFlashlight();
                 }, 12000);
             }
 
-            // Check if player is at a true dead end (only 1 direction open)
-            // Uses multiple check distances to avoid false triggers at intersections
-            function isDeadEnd() {
-                // Check at multiple distances - direction is open if ANY point is walkable
-                const checkDistances = [15, 30, 50];
+            // Wrong way detection system - tracks sustained movement into dead ends
+            function startWrongWayDetection() {
+                movementHistory = [];
+                distanceHistory = [];
 
-                function isDirectionOpen(dx, dy) {
-                    return checkDistances.some(d => canMoveTo(posX + dx * d, posY + dy * d));
+                wrongWayCheckInterval = setInterval(() => {
+                    if (gameWon || gameLost || movementFrozen || !flashlightActive) return;
+
+                    const now = Date.now();
+
+                    // Record current position and distance
+                    movementHistory.push({ x: posX, y: posY, time: now });
+                    distanceHistory.push({ distance: getDistanceToExit(), time: now });
+
+                    // Keep only last 2 seconds of history
+                    movementHistory = movementHistory.filter(p => now - p.time < 2000);
+                    distanceHistory = distanceHistory.filter(d => now - d.time < 2000);
+
+                    // Check wrong way conditions
+                    if (checkWrongWayConditions()) {
+                        triggerWrongWay();
+                    }
+                }, CHECK_INTERVAL);
+            }
+
+            function stopWrongWayDetection() {
+                if (wrongWayCheckInterval) {
+                    clearInterval(wrongWayCheckInterval);
+                    wrongWayCheckInterval = null;
+                }
+                movementHistory = [];
+                distanceHistory = [];
+            }
+
+            function checkWrongWayConditions() {
+                // Need enough history (at least 1.5 seconds worth)
+                if (movementHistory.length < 7 || distanceHistory.length < 7) return false;
+
+                const oldest = movementHistory[0];
+                const newest = movementHistory[movementHistory.length - 1];
+                const timeDiff = newest.time - oldest.time;
+
+                // Condition 1: Sustained movement for at least 1.5 seconds
+                if (timeDiff < SUSTAINED_TIME) return false;
+
+                // Check if there's been actual movement (not standing still)
+                const totalDx = newest.x - oldest.x;
+                const totalDy = newest.y - oldest.y;
+                const totalDistance = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+                if (totalDistance < 50) return false; // Must have moved at least 50px
+
+                // Condition 2: Determine movement direction and check if heading into dead end
+                let dirX = 0, dirY = 0;
+                if (Math.abs(totalDx) > Math.abs(totalDy)) {
+                    dirX = totalDx > 0 ? 1 : -1;
+                } else {
+                    dirY = totalDy > 0 ? 1 : -1;
                 }
 
-                let openDirections = 0;
-                if (isDirectionOpen(0, -1)) openDirections++; // Up
-                if (isDirectionOpen(0, 1)) openDirections++;  // Down
-                if (isDirectionOpen(-1, 0)) openDirections++; // Left
-                if (isDirectionOpen(1, 0)) openDirections++;  // Right
+                // Check if path ahead is blocked (dead end corridor)
+                const checkDistances = [40, 60, 80, 100];
+                let blockedAhead = 0;
+                for (const d of checkDistances) {
+                    if (!canMoveTo(posX + dirX * d, posY + dirY * d)) {
+                        blockedAhead++;
+                    }
+                }
+                // Not heading into a dead end if most of the path is open
+                if (blockedAhead < 3) return false;
 
-                // True dead end = only 1 direction has any open space (the way back)
-                return openDirections <= 1;
+                // Condition 3: Not getting closer to exit during this movement
+                const oldestDist = distanceHistory[0].distance;
+                const newestDist = distanceHistory[distanceHistory.length - 1].distance;
+                // If getting significantly closer to exit, not wrong way
+                if (newestDist < oldestDist - 20) return false;
+
+                // All conditions met: sustained movement into dead end while not approaching exit
+                return true;
+            }
+
+            function triggerWrongWay() {
+                stopWrongWayDetection();
+
+                // Stop current flashlight timer
+                if (flashlightTimer) {
+                    clearTimeout(flashlightTimer);
+                    flashlightTimer = null;
+                }
+                flashlightActive = false;
+
+                // Consume a flashlight use
+                flashlightUses--;
+
+                // Switch to darkness with character glow
+                updateCharacterGlow();
+
+                // Freeze movement
+                movementFrozen = true;
+
+                // Show wrong way screen
+                const wrongWayScreen = document.createElement('div');
+                wrongWayScreen.id = 'wrongWayScreen';
+                const wrongWayImg = document.createElement('img');
+                wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
+                wrongWayImg.alt = 'You take the wrong way';
+                wrongWayScreen.appendChild(wrongWayImg);
+                document.body.appendChild(wrongWayScreen);
+
+                // After 2 seconds, check if FAILED or continue
+                setTimeout(() => {
+                    wrongWayScreen.remove();
+                    movementFrozen = false;
+
+                    if (flashlightUses <= 0) {
+                        // No flashlights left after wrong way = FAILED
+                        triggerLose();
+                    } else {
+                        // Have flashlights remaining - start next one
+                        startFlashlight();
+                    }
+                }, 2000);
             }
 
             function endFlashlight() {
+                // Stop wrong way detection
+                stopWrongWayDetection();
+
                 flashlightActive = false;
                 flashlightUses--;
+
                 // Switch to character glow only - darkness overlay stays active
                 updateCharacterGlow();
+
                 if (flashlightTimer) {
                     clearTimeout(flashlightTimer);
                     flashlightTimer = null;
                 }
 
-                // If player hasn't won AND at a TRUE dead end, show WRONG WAY
-                if (!gameWon && isDeadEnd()) {
-                    movementFrozen = true;
-
-                    const wrongWayScreen = document.createElement('div');
-                    wrongWayScreen.id = 'wrongWayScreen';
-                    const wrongWayImg = document.createElement('img');
-                    wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
-                    wrongWayImg.alt = 'You take the wrong way';
-                    wrongWayScreen.appendChild(wrongWayImg);
-                    document.body.appendChild(wrongWayScreen);
-
-                    // After 2 seconds, check if FAILED or continue
-                    setTimeout(() => {
-                        wrongWayScreen.remove();
-                        movementFrozen = false;
-
-                        if (flashlightUses <= 0) {
-                            // WRONG WAY triggered AND no flashlights left = FAILED
-                            triggerLose();
-                        } else {
-                            // Have flashlights remaining - auto-start next
-                            startFlashlight();
-                        }
-                    }, 2000);
-                }
-                // If NOT at dead end: player continues freely with character glow
+                // Flashlight ending just switches to darkness
+                // Player continues freely with character glow
                 // Press C to use next flashlight when ready
+                // Wrong way is detected DURING gameplay, not when flashlight ends
             }
 
             // Press C to activate next flashlight (disabled during frozen state)

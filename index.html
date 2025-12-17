@@ -5,37 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maze Game</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         html, body {
-            background-color: #000;
-            min-height: 100vh;
-            overflow: auto;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
         }
 
-        body {
+        #game {
+            width: 100%;
+            height: 100%;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 20px;
-        }
-
-        .maze-container {
+            justify-content: center;
+            overflow: visible;
             position: relative;
-            display: inline-block;
         }
 
-        .maze-container img.maze {
+        #mazeImg {
             display: block;
-            max-width: none;
+            width: auto;
             height: auto;
+            max-width: 95vw;
+            max-height: 95vh;
+            object-fit: contain;
         }
 
-        .maze-container img.character {
+        #character {
             position: absolute;
             width: 30px;
             height: auto;
@@ -43,24 +39,21 @@
     </style>
 </head>
 <body>
-    <div class="maze-container">
-        <img src="finalmaze/finalmaze/maze.png" alt="Maze" class="maze">
-        <img src="finalmaze/finalmaze/character.png" alt="Character" class="character" id="character">
+    <div id="game">
+        <img id="mazeImg" src="finalmaze/finalmaze/maze.png" alt="maze" />
+        <img id="character" src="finalmaze/finalmaze/character.png" alt="Character" />
     </div>
 
     <script>
         const character = document.getElementById('character');
         const moveSpeed = 5;
 
-        // Starting position at the top-left corridor
         let posX = 30;
         let posY = 30;
 
-        // Set initial position
         character.style.left = posX + 'px';
         character.style.top = posY + 'px';
 
-        // Track which keys are currently pressed
         const keysPressed = {};
 
         document.addEventListener('keydown', (e) => {
@@ -71,7 +64,6 @@
             keysPressed[e.key.toLowerCase()] = false;
         });
 
-        // Game loop for smooth movement
         function gameLoop() {
             if (keysPressed['w']) {
                 posY -= moveSpeed;

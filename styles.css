@@ -17,4 +17,17 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    position: relative;
+}
+
+#character {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-image: url('finalmaze/finalmaze/character.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    left: 50px;
+    top: 50px;
 }

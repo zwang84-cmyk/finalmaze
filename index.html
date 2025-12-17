@@ -358,24 +358,13 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameState === 'playing' && characterLoaded) {
-                ctx.save();
-
-                // Camera follows character - center viewport on player
-                const cameraX = canvas.width / 2 - player.x - 20; // Offset for character center
-                const cameraY = canvas.height / 2 - player.y - 20;
-
-                ctx.translate(cameraX, cameraY);
-
-                // Draw character at player position
-                // Character size: 40x40 pixels (reduced for better navigation)
+                // Draw character at player position (no camera transform - show full maze)
                 const charWidth = 40;
                 const charHeight = 40;
 
                 ctx.drawImage(characterImg, player.x, player.y, charWidth, charHeight);
 
-                ctx.restore();
-
-                // Draw darkness overlay with flashlight effect (no camera transform)
+                // Draw darkness overlay with flashlight effect
                 if (flashlightActive) {
                     ctx.save();
 

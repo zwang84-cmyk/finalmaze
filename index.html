@@ -55,6 +55,11 @@
             object-fit: contain;
         }
 
+        #mazeWrapper {
+            position: relative;
+            display: inline-block;
+        }
+
         #character {
             position: absolute;
             width: 30px;
@@ -131,6 +136,9 @@
             const gameDiv = document.createElement('div');
             gameDiv.id = 'game';
 
+            const mazeWrapper = document.createElement('div');
+            mazeWrapper.id = 'mazeWrapper';
+
             const mazeImg = document.createElement('img');
             mazeImg.id = 'mazeImg';
             mazeImg.src = 'finalmaze/finalmaze/maze.png';
@@ -141,22 +149,33 @@
             character.src = 'finalmaze/finalmaze/character.png';
             character.alt = 'Character';
 
-            gameDiv.appendChild(mazeImg);
-            gameDiv.appendChild(character);
+            mazeWrapper.appendChild(mazeImg);
+            mazeWrapper.appendChild(character);
+            gameDiv.appendChild(mazeWrapper);
             document.body.appendChild(gameDiv);
 
             const overlay = document.createElement('div');
             overlay.id = 'flashlightOverlay';
             document.body.appendChild(overlay);
 
-            // Initialize game
-            initGame(character, overlay);
+            // Wait for maze image to load, then initialize game with correct position
+            mazeImg.onload = function() {
+                initGame(character, overlay, mazeImg);
+            };
         }
 
-        function initGame(character, overlay) {
+        function initGame(character, overlay, mazeImg) {
             const moveSpeed = 5;
-            let posX = 30;
-            let posY = 30;
+
+            // Calculate character spawn position relative to displayed maze
+            // The maze has a white border, and the top-left corridor entrance is just inside
+            const mazeWidth = mazeImg.offsetWidth;
+            const mazeHeight = mazeImg.offsetHeight;
+
+            // Position at top-left corridor (percentage-based for scaling)
+            // Approximately 2.5% from left and 3% from top to be inside the corridor
+            let posX = Math.round(mazeWidth * 0.025);
+            let posY = Math.round(mazeHeight * 0.035);
 
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';

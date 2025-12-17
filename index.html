@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .maze-container {
+            position: relative;
+        }
+
+        .maze-container img.maze {
+            display: block;
+        }
+
+        .maze-container img.character {
+            position: absolute;
+            width: 30px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="maze-container">
+        <img src="finalmaze/finalmaze/maze.png" alt="Maze" class="maze">
+        <img src="finalmaze/finalmaze/character.png" alt="Character" class="character" id="character">
+    </div>
+
+    <script>
+        const character = document.getElementById('character');
+        const moveSpeed = 5;
+
+        // Starting position at the top-left corridor
+        let posX = 30;
+        let posY = 30;
+
+        // Set initial position
+        character.style.left = posX + 'px';
+        character.style.top = posY + 'px';
+
+        // Track which keys are currently pressed
+        const keysPressed = {};
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        // Game loop for smooth movement
+        function gameLoop() {
+            if (keysPressed['w']) {
+                posY -= moveSpeed;
+            }
+            if (keysPressed['s']) {
+                posY += moveSpeed;
+            }
+            if (keysPressed['a']) {
+                posX -= moveSpeed;
+            }
+            if (keysPressed['d']) {
+                posX += moveSpeed;
+            }
+
+            character.style.left = posX + 'px';
+            character.style.top = posY + 'px';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

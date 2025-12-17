@@ -46,8 +46,8 @@
             pointer-events: none;
             z-index: 1000;
             background: #000;
-            -webkit-mask-image: radial-gradient(circle 80px at 0px 0px, transparent 100%, black 100%);
-            mask-image: radial-gradient(circle 80px at 0px 0px, transparent 100%, black 100%);
+            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
+            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
         }
 
         #flashlightOverlay.hidden {
@@ -113,7 +113,7 @@
         let mouseY = 0;
 
         function updateFlashlightPosition() {
-            const maskValue = `radial-gradient(circle 80px at ${mouseX}px ${mouseY}px, transparent 100%, black 100%)`;
+            const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
             overlay.style.webkitMaskImage = maskValue;
             overlay.style.maskImage = maskValue;
         }

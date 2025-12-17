@@ -76,8 +76,8 @@
             pointer-events: none;
             z-index: 1000;
             background: #000;
-            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
-            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
+            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px);
+            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px);
         }
 
         #flashlightOverlay.hidden {
@@ -486,7 +486,7 @@
 
             // Update overlay with mouse-controlled flashlight
             function updateFlashlightPosition() {
-                const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
+                const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 80px, rgba(0,0,0,0.3) 105px, rgba(0,0,0,0.7) 130px, black 160px)`;
                 overlay.style.webkitMaskImage = maskValue;
                 overlay.style.maskImage = maskValue;
             }
@@ -519,7 +519,7 @@
 
                 flashlightTimer = setTimeout(() => {
                     endFlashlight();
-                }, 12000);
+                }, 15000);
             }
 
             // Wrong way detection system - tracks sustained movement into dead ends

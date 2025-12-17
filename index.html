@@ -36,6 +36,23 @@
             width: 30px;
             height: auto;
         }
+
+        #flashlightOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1000;
+            background: #000;
+            -webkit-mask-image: radial-gradient(circle 80px at 0px 0px, transparent 100%, black 100%);
+            mask-image: radial-gradient(circle 80px at 0px 0px, transparent 100%, black 100%);
+        }
+
+        #flashlightOverlay.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -43,6 +60,7 @@
         <img id="mazeImg" src="finalmaze/finalmaze/maze.png" alt="maze" />
         <img id="character" src="finalmaze/finalmaze/character.png" alt="Character" />
     </div>
+    <div id="flashlightOverlay"></div>
 
     <script>
         const character = document.getElementById('character');
@@ -85,6 +103,60 @@
         }
 
         gameLoop();
+
+        // Flashlight system
+        const overlay = document.getElementById('flashlightOverlay');
+        let flashlightUses = 3;
+        let flashlightActive = false;
+        let flashlightTimer = null;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function updateFlashlightPosition() {
+            const maskValue = `radial-gradient(circle 80px at ${mouseX}px ${mouseY}px, transparent 100%, black 100%)`;
+            overlay.style.webkitMaskImage = maskValue;
+            overlay.style.maskImage = maskValue;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            if (flashlightActive) {
+                updateFlashlightPosition();
+            }
+        });
+
+        function startFlashlight() {
+            if (flashlightUses <= 0 || flashlightActive) return;
+
+            flashlightActive = true;
+            overlay.classList.remove('hidden');
+            updateFlashlightPosition();
+
+            flashlightTimer = setTimeout(() => {
+                endFlashlight();
+            }, 15000);
+        }
+
+        function endFlashlight() {
+            flashlightActive = false;
+            flashlightUses--;
+            overlay.classList.add('hidden');
+            if (flashlightTimer) {
+                clearTimeout(flashlightTimer);
+                flashlightTimer = null;
+            }
+        }
+
+        // Press C to activate next flashlight
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0) {
+                startFlashlight();
+            }
+        });
+
+        // Start flashlight immediately when game loads
+        startFlashlight();
     </script>
 </body>
 </html>

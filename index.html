@@ -35,6 +35,49 @@
             position: absolute;
             cursor: pointer;
         }
+
+        /* Game Styles */
+        #game {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #mazeImg {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        #character {
+            position: absolute;
+            width: 30px;
+            height: auto;
+            mix-blend-mode: screen;
+        }
+
+        #flashlightOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1000;
+            background: #000;
+            -webkit-mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
+            mask-image: radial-gradient(circle at 0px 0px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px);
+        }
+
+        #flashlightOverlay.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -84,8 +127,124 @@
         });
 
         function startGame() {
-            // Game will be implemented in the next step
-            console.log('Game started');
+            // Create game elements
+            const gameDiv = document.createElement('div');
+            gameDiv.id = 'game';
+
+            const mazeImg = document.createElement('img');
+            mazeImg.id = 'mazeImg';
+            mazeImg.src = 'finalmaze/finalmaze/maze.png';
+            mazeImg.alt = 'maze';
+
+            const character = document.createElement('img');
+            character.id = 'character';
+            character.src = 'finalmaze/finalmaze/character.png';
+            character.alt = 'Character';
+
+            gameDiv.appendChild(mazeImg);
+            gameDiv.appendChild(character);
+            document.body.appendChild(gameDiv);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'flashlightOverlay';
+            document.body.appendChild(overlay);
+
+            // Initialize game
+            initGame(character, overlay);
+        }
+
+        function initGame(character, overlay) {
+            const moveSpeed = 5;
+            let posX = 30;
+            let posY = 30;
+
+            character.style.left = posX + 'px';
+            character.style.top = posY + 'px';
+
+            const keysPressed = {};
+
+            document.addEventListener('keydown', (e) => {
+                keysPressed[e.key.toLowerCase()] = true;
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keysPressed[e.key.toLowerCase()] = false;
+            });
+
+            function gameLoop() {
+                if (keysPressed['w']) {
+                    posY -= moveSpeed;
+                }
+                if (keysPressed['s']) {
+                    posY += moveSpeed;
+                }
+                if (keysPressed['a']) {
+                    posX -= moveSpeed;
+                }
+                if (keysPressed['d']) {
+                    posX += moveSpeed;
+                }
+
+                character.style.left = posX + 'px';
+                character.style.top = posY + 'px';
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            gameLoop();
+
+            // Flashlight system
+            let flashlightUses = 3;
+            let flashlightActive = false;
+            let flashlightTimer = null;
+            let mouseX = 0;
+            let mouseY = 0;
+
+            function updateFlashlightPosition() {
+                const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
+                overlay.style.webkitMaskImage = maskValue;
+                overlay.style.maskImage = maskValue;
+            }
+
+            window.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                if (flashlightActive) {
+                    updateFlashlightPosition();
+                }
+            });
+
+            function startFlashlight() {
+                if (flashlightUses <= 0 || flashlightActive) return;
+
+                flashlightActive = true;
+                overlay.classList.remove('hidden');
+                updateFlashlightPosition();
+
+                flashlightTimer = setTimeout(() => {
+                    endFlashlight();
+                }, 12000);
+            }
+
+            function endFlashlight() {
+                flashlightActive = false;
+                flashlightUses--;
+                overlay.classList.add('hidden');
+                if (flashlightTimer) {
+                    clearTimeout(flashlightTimer);
+                    flashlightTimer = null;
+                }
+            }
+
+            // Press C to activate next flashlight
+            document.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0) {
+                    startFlashlight();
+                }
+            });
+
+            // Start flashlight immediately
+            startFlashlight();
         }
     </script>
 </body>

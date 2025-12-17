@@ -299,86 +299,9 @@
             resetGame();
         }
 
-        function drawCharacter(x, y, scale = 1) {
-            ctx.save();
-            ctx.fillStyle = '#ffffff';
-
-            // Draw head (circle)
-            const headRadius = 25 * scale;
-            ctx.beginPath();
-            ctx.arc(x, y - 30 * scale, headRadius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw left eye
-            ctx.fillStyle = '#000000';
-            ctx.beginPath();
-            ctx.arc(x - 10 * scale, y - 35 * scale, 6 * scale, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw right eye
-            ctx.beginPath();
-            ctx.arc(x + 10 * scale, y - 35 * scale, 8 * scale, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw body (keyhole trapezoid shape)
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.moveTo(x - 20 * scale, y);
-            ctx.lineTo(x + 20 * scale, y);
-            ctx.lineTo(x + 15 * scale, y + 50 * scale);
-            ctx.lineTo(x - 15 * scale, y + 50 * scale);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.restore();
-        }
-
         function draw() {
-            // Clear canvas
+            // Clear canvas - maze background only, no other elements
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (gameState === 'playing') {
-                // Draw character at fixed starting position
-                const charX = 80;
-                const charY = 80;
-                drawCharacter(charX, charY, 1.0);
-
-                // Draw darkness overlay with flashlight effect
-                ctx.save();
-
-                if (flashlightActive) {
-                    // Create flashlight gradient
-                    const gradient = ctx.createRadialGradient(
-                        player.x, player.y, 30,
-                        player.x, player.y, 200
-                    );
-                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                    gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
-                    gradient.addColorStop(1, `rgba(0, 0, 0, ${darknessAlpha})`);
-
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                } else {
-                    // Just darkness
-                    ctx.fillStyle = `rgba(0, 0, 0, ${darknessAlpha})`;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Small light around player
-                    const smallGradient = ctx.createRadialGradient(
-                        player.x, player.y, 0,
-                        player.x, player.y, 40
-                    );
-                    smallGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                    smallGradient.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
-
-                    ctx.globalCompositeOperation = 'destination-out';
-                    ctx.fillStyle = smallGradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.globalCompositeOperation = 'source-over';
-                }
-
-                ctx.restore();
-            }
         }
 
         function gameLoop() {

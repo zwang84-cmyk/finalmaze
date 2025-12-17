@@ -249,40 +249,23 @@
                 return brightness > 200;
             }
 
-            // Check collision for character at given position
+            // Check collision for character at given position (using center point only)
             function canMoveTo(x, y) {
                 const charWidth = character.offsetWidth;
                 const charHeight = character.offsetHeight;
 
-                // Check multiple points around the character for tight collision
-                // Use smaller margin from edges for accuracy
-                const margin = 3;
-                const points = [
-                    // Center
-                    { x: x + charWidth / 2, y: y + charHeight / 2 },
-                    // Corners with margin
-                    { x: x + margin, y: y + margin },
-                    { x: x + charWidth - margin, y: y + margin },
-                    { x: x + margin, y: y + charHeight - margin },
-                    { x: x + charWidth - margin, y: y + charHeight - margin },
-                    // Edge midpoints
-                    { x: x + charWidth / 2, y: y + margin },
-                    { x: x + charWidth / 2, y: y + charHeight - margin },
-                    { x: x + margin, y: y + charHeight / 2 },
-                    { x: x + charWidth - margin, y: y + charHeight / 2 }
-                ];
+                // Use ONLY the character's visual center point for collision
+                const centerX = x + charWidth / 2;
+                const centerY = y + charHeight / 2;
 
-                for (const point of points) {
-                    if (isWall(point.x, point.y)) {
-                        return false;
-                    }
-                }
-                return true;
+                return !isWall(centerX, centerY);
             }
 
-            // Position at top-left corridor (percentage-based for scaling)
-            let posX = Math.round(mazeWidth * 0.025);
-            let posY = Math.round(mazeHeight * 0.035);
+            // Position at top-left corridor - adjusted so CENTER is on black pixel
+            const charWidth = 30; // Character width from CSS
+            const charHeight = charWidth; // Approximate square
+            let posX = Math.round(mazeWidth * 0.035 - charWidth / 2);
+            let posY = Math.round(mazeHeight * 0.05 - charHeight / 2);
 
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';

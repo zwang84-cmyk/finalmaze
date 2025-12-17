@@ -271,9 +271,26 @@
         }
 
         function updatePlayer() {
-            // Character movement disabled for now
-            // Character remains at fixed starting position
-            return;
+            if (gameState !== 'playing') return;
+
+            let newX = player.x;
+            let newY = player.y;
+
+            // Movement with WASD
+            if (keys['w']) newY -= player.speed;
+            if (keys['s']) newY += player.speed;
+            if (keys['a']) newX -= player.speed;
+            if (keys['d']) newX += player.speed;
+
+            // Check collision with walls
+            if (mazeLoaded && !checkCollision(newX, newY)) {
+                player.x = newX;
+                player.y = newY;
+            }
+
+            // Keep player in bounds
+            player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
+            player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
         }
 
         function checkCollision(x, y) {
@@ -314,14 +331,12 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameState === 'playing' && characterLoaded) {
-                // Draw character at fixed position in upper-left area
-                // Character size: 45x45 pixels (90% scale), positioned at (60, 60)
-                const charX = 60;
-                const charY = 60;
+                // Draw character at player position
+                // Character size: 45x45 pixels (90% scale)
                 const charWidth = 45;
                 const charHeight = 45;
 
-                ctx.drawImage(characterImg, charX, charY, charWidth, charHeight);
+                ctx.drawImage(characterImg, player.x, player.y, charWidth, charHeight);
             }
         }
 

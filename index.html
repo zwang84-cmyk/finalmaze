@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maze Game</title>
+    <title>Labyrinth of Shadows</title>
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel&display=swap" rel="stylesheet">
     <style>
         html, body {
             margin: 0;
@@ -13,6 +14,116 @@
             overflow: hidden;
         }
 
+        /* Start Page Styles */
+        #startPage {
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 2000;
+        }
+
+        .start-container {
+            width: 90%;
+            max-width: 900px;
+            height: 80%;
+            max-height: 600px;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 60px 40px;
+            box-sizing: border-box;
+        }
+
+        /* Corner decorations */
+        .start-container::before,
+        .start-container::after,
+        .corner-bl,
+        .corner-br {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #fff;
+        }
+
+        .start-container::before {
+            top: 10px;
+            left: 10px;
+            border-right: none;
+            border-bottom: none;
+            border-top-left-radius: 15px;
+        }
+
+        .start-container::after {
+            top: 10px;
+            right: 10px;
+            border-left: none;
+            border-bottom: none;
+            border-top-right-radius: 15px;
+        }
+
+        .corner-bl {
+            bottom: 10px;
+            left: 10px;
+            border-right: none;
+            border-top: none;
+            border-bottom-left-radius: 15px;
+        }
+
+        .corner-br {
+            bottom: 10px;
+            right: 10px;
+            border-left: none;
+            border-top: none;
+            border-bottom-right-radius: 15px;
+        }
+
+        .title {
+            font-family: 'UnifrakturMaguntia', serif;
+            font-size: 64px;
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            letter-spacing: 4px;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #fff;
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            line-height: 2;
+        }
+
+        .instructions p {
+            margin: 0;
+        }
+
+        #startButton {
+            font-family: 'UnifrakturMaguntia', serif;
+            font-size: 42px;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+
+        #startButton:hover {
+            text-decoration: underline;
+        }
+
+        /* Game Styles */
         #game {
             width: 100vw;
             height: 100vh;
@@ -57,107 +168,150 @@
     </style>
 </head>
 <body>
-    <div id="game">
-        <img id="mazeImg" src="finalmaze/finalmaze/maze.png" alt="maze" />
-        <img id="character" src="finalmaze/finalmaze/character.png" alt="Character" />
+    <!-- Start Page -->
+    <div id="startPage">
+        <div class="start-container">
+            <div class="corner-bl"></div>
+            <div class="corner-br"></div>
+            <h1 class="title">LABYRINTH OF SHADOWS</h1>
+            <div class="instructions">
+                <p>You have 3 chances to use the flashlight.</p>
+                <p>Use W, A, S, D to guide the character.</p>
+                <p>Each flashlight lasts for 12 seconds.</p>
+            </div>
+            <button id="startButton">Start Exploration</button>
+        </div>
     </div>
-    <div id="flashlightOverlay"></div>
 
     <script>
-        const character = document.getElementById('character');
-        const moveSpeed = 5;
+        let gameStarted = false;
 
-        let posX = 30;
-        let posY = 30;
+        document.getElementById('startButton').addEventListener('click', function() {
+            if (gameStarted) return;
+            gameStarted = true;
 
-        character.style.left = posX + 'px';
-        character.style.top = posY + 'px';
+            // Remove start page
+            document.getElementById('startPage').remove();
 
-        const keysPressed = {};
+            // Create game elements
+            const gameDiv = document.createElement('div');
+            gameDiv.id = 'game';
 
-        document.addEventListener('keydown', (e) => {
-            keysPressed[e.key.toLowerCase()] = true;
+            const mazeImg = document.createElement('img');
+            mazeImg.id = 'mazeImg';
+            mazeImg.src = 'finalmaze/finalmaze/maze.png';
+            mazeImg.alt = 'maze';
+
+            const character = document.createElement('img');
+            character.id = 'character';
+            character.src = 'finalmaze/finalmaze/character.png';
+            character.alt = 'Character';
+
+            gameDiv.appendChild(mazeImg);
+            gameDiv.appendChild(character);
+            document.body.appendChild(gameDiv);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'flashlightOverlay';
+            document.body.appendChild(overlay);
+
+            // Initialize game
+            initGame(character, overlay);
         });
 
-        document.addEventListener('keyup', (e) => {
-            keysPressed[e.key.toLowerCase()] = false;
-        });
-
-        function gameLoop() {
-            if (keysPressed['w']) {
-                posY -= moveSpeed;
-            }
-            if (keysPressed['s']) {
-                posY += moveSpeed;
-            }
-            if (keysPressed['a']) {
-                posX -= moveSpeed;
-            }
-            if (keysPressed['d']) {
-                posX += moveSpeed;
-            }
+        function initGame(character, overlay) {
+            const moveSpeed = 5;
+            let posX = 30;
+            let posY = 30;
 
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';
 
-            requestAnimationFrame(gameLoop);
-        }
+            const keysPressed = {};
 
-        gameLoop();
+            document.addEventListener('keydown', (e) => {
+                keysPressed[e.key.toLowerCase()] = true;
+            });
 
-        // Flashlight system
-        const overlay = document.getElementById('flashlightOverlay');
-        let flashlightUses = 3;
-        let flashlightActive = false;
-        let flashlightTimer = null;
-        let mouseX = 0;
-        let mouseY = 0;
+            document.addEventListener('keyup', (e) => {
+                keysPressed[e.key.toLowerCase()] = false;
+            });
 
-        function updateFlashlightPosition() {
-            const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
-            overlay.style.webkitMaskImage = maskValue;
-            overlay.style.maskImage = maskValue;
-        }
+            function gameLoop() {
+                if (keysPressed['w']) {
+                    posY -= moveSpeed;
+                }
+                if (keysPressed['s']) {
+                    posY += moveSpeed;
+                }
+                if (keysPressed['a']) {
+                    posX -= moveSpeed;
+                }
+                if (keysPressed['d']) {
+                    posX += moveSpeed;
+                }
 
-        window.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            if (flashlightActive) {
+                character.style.left = posX + 'px';
+                character.style.top = posY + 'px';
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            gameLoop();
+
+            // Flashlight system
+            let flashlightUses = 3;
+            let flashlightActive = false;
+            let flashlightTimer = null;
+            let mouseX = 0;
+            let mouseY = 0;
+
+            function updateFlashlightPosition() {
+                const maskValue = `radial-gradient(circle at ${mouseX}px ${mouseY}px, transparent 0px, transparent 60px, rgba(0,0,0,0.3) 80px, rgba(0,0,0,0.7) 100px, black 120px)`;
+                overlay.style.webkitMaskImage = maskValue;
+                overlay.style.maskImage = maskValue;
+            }
+
+            window.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                if (flashlightActive) {
+                    updateFlashlightPosition();
+                }
+            });
+
+            function startFlashlight() {
+                if (flashlightUses <= 0 || flashlightActive) return;
+
+                flashlightActive = true;
+                overlay.classList.remove('hidden');
                 updateFlashlightPosition();
+
+                flashlightTimer = setTimeout(() => {
+                    endFlashlight();
+                }, 12000);
             }
-        });
 
-        function startFlashlight() {
-            if (flashlightUses <= 0 || flashlightActive) return;
+            function endFlashlight() {
+                flashlightActive = false;
+                flashlightUses--;
+                overlay.classList.add('hidden');
+                if (flashlightTimer) {
+                    clearTimeout(flashlightTimer);
+                    flashlightTimer = null;
+                }
+            }
 
-            flashlightActive = true;
-            overlay.classList.remove('hidden');
-            updateFlashlightPosition();
+            // Press C to activate next flashlight
+            document.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0) {
+                    startFlashlight();
+                }
+            });
 
-            flashlightTimer = setTimeout(() => {
-                endFlashlight();
-            }, 15000);
+            // Start flashlight immediately
+            startFlashlight();
         }
-
-        function endFlashlight() {
-            flashlightActive = false;
-            flashlightUses--;
-            overlay.classList.add('hidden');
-            if (flashlightTimer) {
-                clearTimeout(flashlightTimer);
-                flashlightTimer = null;
-            }
-        }
-
-        // Press C to activate next flashlight
-        document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'c' && !flashlightActive && flashlightUses > 0) {
-                startFlashlight();
-            }
-        });
-
-        // Start flashlight immediately when game loads
-        startFlashlight();
     </script>
 </body>
 </html>

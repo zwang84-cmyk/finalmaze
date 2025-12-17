@@ -30,10 +30,10 @@ function init() {
     game.canvas.height = 768;
 
     // Load character image
-    game.character.img.src = 'finalmaze/character.png';
+    game.character.img.src = 'finalmaze/finalmaze/character.png';
 
     // Load maze image for collision detection
-    game.maze.img.src = 'finalmaze/maze.png';
+    game.maze.img.src = 'finalmaze/finalmaze/maze.png';
     game.maze.img.onload = () => {
         // Create a temporary canvas to read maze pixel data
         const tempCanvas = document.createElement('canvas');

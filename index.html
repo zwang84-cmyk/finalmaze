@@ -178,6 +178,16 @@
             character.style.left = posX + 'px';
             character.style.top = posY + 'px';
 
+            // Define invisible exit zone at bottom-right (near the exit arrow)
+            const exitZone = {
+                x: mazeWidth * 0.96,
+                y: mazeHeight * 0.88,
+                width: mazeWidth * 0.04,
+                height: mazeHeight * 0.10
+            };
+
+            let gameWon = false;
+
             const keysPressed = {};
 
             document.addEventListener('keydown', (e) => {
@@ -188,7 +198,32 @@
                 keysPressed[e.key.toLowerCase()] = false;
             });
 
+            // Check if character intersects exit zone
+            function checkWinCondition() {
+                const charWidth = character.offsetWidth;
+                const charHeight = character.offsetHeight;
+
+                // Check if character center is within exit zone
+                const charCenterX = posX + charWidth / 2;
+                const charCenterY = posY + charHeight / 2;
+
+                if (charCenterX >= exitZone.x &&
+                    charCenterX <= exitZone.x + exitZone.width &&
+                    charCenterY >= exitZone.y &&
+                    charCenterY <= exitZone.y + exitZone.height) {
+                    return true;
+                }
+                return false;
+            }
+
+            function triggerWin() {
+                gameWon = true;
+                // Win state triggered - movement stopped
+            }
+
             function gameLoop() {
+                if (gameWon) return;
+
                 if (keysPressed['w']) {
                     posY -= moveSpeed;
                 }
@@ -204,6 +239,12 @@
 
                 character.style.left = posX + 'px';
                 character.style.top = posY + 'px';
+
+                // Check win condition
+                if (checkWinCondition()) {
+                    triggerWin();
+                    return;
+                }
 
                 requestAnimationFrame(gameLoop);
             }

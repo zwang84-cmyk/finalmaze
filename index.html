@@ -160,6 +160,16 @@
             console.log('Maze loaded for collision detection');
         };
 
+        // Load character image
+        const characterImg = new Image();
+        characterImg.src = 'finalmaze/character.png';
+        let characterLoaded = false;
+
+        characterImg.onload = () => {
+            characterLoaded = true;
+            console.log('Character loaded');
+        };
+
         // Event listeners
         document.getElementById('startHotspot').addEventListener('click', startGame);
 
@@ -300,8 +310,19 @@
         }
 
         function draw() {
-            // Clear canvas - maze background only, no other elements
+            // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'playing' && characterLoaded) {
+                // Draw character at fixed position in upper-left area
+                // Character size: 50x50 pixels, positioned at (60, 60)
+                const charX = 60;
+                const charY = 60;
+                const charWidth = 50;
+                const charHeight = 50;
+
+                ctx.drawImage(characterImg, charX, charY, charWidth, charHeight);
+            }
         }
 
         function gameLoop() {

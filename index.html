@@ -88,19 +88,6 @@
             cursor: pointer;
         }
 
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 18px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            z-index: 5;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 15px;
-            border-radius: 5px;
-        }
-
         #startButton {
             position: absolute;
             bottom: 100px;
@@ -130,13 +117,6 @@
 
         <!-- Game canvas for player and effects -->
         <canvas id="gameCanvas"></canvas>
-
-        <!-- UI elements -->
-        <div id="ui">
-            <div>Flashlights: <span id="flashlightCount">3</span></div>
-            <div id="timer" style="display: none;">Time: <span id="timeRemaining">12</span>s</div>
-            <div style="margin-top: 5px; font-size: 14px;">Press SPACE for flashlight</div>
-        </div>
 
         <!-- Overlays for different game states -->
         <div id="startOverlay" class="overlay active"></div>
@@ -194,12 +174,6 @@
 
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
-
-            // Spacebar for flashlight
-            if (e.key === ' ' && gameState === 'playing') {
-                e.preventDefault();
-                activateFlashlight();
-            }
         });
 
         document.addEventListener('keyup', (e) => {
@@ -222,8 +196,6 @@
             flashlightTimer = 0;
             darknessAlpha = 0.95;
 
-            document.getElementById('flashlightCount').textContent = flashlights;
-            document.getElementById('timer').style.display = 'none';
             document.getElementById('failOverlay').classList.remove('active');
             document.getElementById('wrongwayOverlay').classList.remove('active');
             document.getElementById('rightwayOverlay').classList.remove('active');
@@ -237,9 +209,6 @@
                 flashlightActive = true;
                 flashlightTimer = FLASHLIGHT_DURATION;
                 darknessAlpha = 0.3;
-
-                document.getElementById('flashlightCount').textContent = flashlights;
-                document.getElementById('timer').style.display = 'block';
 
                 // Check if player is on the right path
                 checkPath();
@@ -271,13 +240,9 @@
             if (flashlightActive) {
                 flashlightTimer -= deltaTime;
 
-                const secondsRemaining = Math.ceil(flashlightTimer / 1000);
-                document.getElementById('timeRemaining').textContent = secondsRemaining;
-
                 if (flashlightTimer <= 0) {
                     flashlightActive = false;
                     darknessAlpha = 0.95;
-                    document.getElementById('timer').style.display = 'none';
 
                     // Check if out of flashlights
                     if (flashlights === 0) {

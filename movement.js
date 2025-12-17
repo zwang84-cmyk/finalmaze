@@ -1,14 +1,23 @@
-// Character movement with transparent background
-// Removes outer black background while preserving internal black details (eyes)
+// Character movement with correct coordinate system
+// Character positioned INSIDE the maze image, accounting for centered background
 
 const characterCanvas = document.getElementById('character');
 const characterCtx = characterCanvas.getContext('2d');
+const mazeContainer = document.getElementById('maze-container');
 
 // Character properties
-let characterX = 50;
-let characterY = 50;
 const characterSize = 30;
 const moveSpeed = 5;
+
+// Maze rendering info - where the maze actually appears in the container
+let mazeRenderX = 0;
+let mazeRenderY = 0;
+let mazeRenderWidth = 0;
+let mazeRenderHeight = 0;
+
+// Character position in maze coordinates (relative to maze image)
+let characterMazeX = 50; // Start inside the top-left entrance corridor
+let characterMazeY = 50;
 
 // Processed character image (with transparency)
 let processedCharacterData = null;
@@ -43,7 +52,6 @@ characterImage.onload = () => {
     const data = imageData.data;
 
     // Remove outer black background using flood fill from corners
-    // This preserves internal black details (eyes)
     const visited = new Set();
     const width = tempCanvas.width;
     const height = tempCanvas.height;
@@ -73,7 +81,7 @@ characterImage.onload = () => {
 
             // Make this pixel transparent
             const idx = (y * width + x) * 4;
-            data[idx + 3] = 0; // Set alpha to 0
+            data[idx + 3] = 0;
 
             // Check neighbors
             stack.push([x + 1, y]);
@@ -83,13 +91,12 @@ characterImage.onload = () => {
         }
     }
 
-    // Flood fill from all four corners to remove outer black
+    // Flood fill from edges to remove outer black
     floodFillBlack(0, 0);
     floodFillBlack(width - 1, 0);
     floodFillBlack(0, height - 1);
     floodFillBlack(width - 1, height - 1);
 
-    // Also check edges
     for (let x = 0; x < width; x++) {
         floodFillBlack(x, 0);
         floodFillBlack(x, height - 1);
@@ -99,26 +106,50 @@ characterImage.onload = () => {
         floodFillBlack(width - 1, y);
     }
 
-    // Put processed image data back
     tempCtx.putImageData(imageData, 0, 0);
-
-    // Store processed image
     processedCharacterData = tempCanvas;
 
-    // Draw character
     drawCharacter();
 };
 characterImage.src = 'finalmaze/finalmaze/character.png';
 
-// Load maze for collision detection
+// Load maze for collision detection and positioning
 mazeImage.onload = () => {
     offscreenCanvas.width = mazeImage.width;
     offscreenCanvas.height = mazeImage.height;
     offscreenCtx.drawImage(mazeImage, 0, 0);
+
+    // Calculate where the maze actually renders in the container
+    calculateMazeRenderPosition();
+
+    // Position character initially
+    updateCharacterScreenPosition();
+
     mazeLoaded = true;
     gameLoop();
 };
 mazeImage.src = 'finalmaze/finalmaze/maze.png';
+
+// Calculate where the maze image actually appears in the container
+function calculateMazeRenderPosition() {
+    const containerWidth = mazeContainer.offsetWidth;
+    const containerHeight = mazeContainer.offsetHeight;
+    const mazeWidth = mazeImage.width;
+    const mazeHeight = mazeImage.height;
+
+    // Calculate scale factor for 'contain'
+    const scaleX = containerWidth / mazeWidth;
+    const scaleY = containerHeight / mazeHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Calculate rendered dimensions
+    mazeRenderWidth = mazeWidth * scale;
+    mazeRenderHeight = mazeHeight * scale;
+
+    // Calculate position for 'center'
+    mazeRenderX = (containerWidth - mazeRenderWidth) / 2;
+    mazeRenderY = (containerHeight - mazeRenderHeight) / 2;
+}
 
 // Draw character to canvas
 function drawCharacter() {
@@ -134,6 +165,23 @@ function drawCharacter() {
         characterSize,
         characterSize
     );
+}
+
+// Update character's screen position based on maze coordinates
+function updateCharacterScreenPosition() {
+    const containerWidth = mazeContainer.offsetWidth;
+    const containerHeight = mazeContainer.offsetHeight;
+
+    // Recalculate in case window was resized
+    calculateMazeRenderPosition();
+
+    // Convert maze coordinates to screen coordinates
+    const scale = mazeRenderWidth / mazeImage.width;
+    const screenX = mazeRenderX + (characterMazeX * scale);
+    const screenY = mazeRenderY + (characterMazeY * scale);
+
+    characterCanvas.style.left = screenX + 'px';
+    characterCanvas.style.top = screenY + 'px';
 }
 
 // Keyboard input - bound at window level
@@ -152,22 +200,24 @@ window.addEventListener('keyup', (e) => {
     keys[key] = false;
 });
 
-// Check if position collides with wall
-function isWall(x, y) {
+// Check if position collides with wall in maze coordinates
+function isWall(mazeX, mazeY) {
     if (!mazeLoaded) return false;
 
     // Check bounds
-    if (x < 0 || y < 0 || x + characterSize >= mazeImage.width || y + characterSize >= mazeImage.height) {
+    if (mazeX < 0 || mazeY < 0 ||
+        mazeX + characterSize >= mazeImage.width ||
+        mazeY + characterSize >= mazeImage.height) {
         return true;
     }
 
     // Sample multiple points around character
     const samples = [
-        [x, y],
-        [x + characterSize, y],
-        [x, y + characterSize],
-        [x + characterSize, y + characterSize],
-        [x + characterSize / 2, y + characterSize / 2]
+        [mazeX, mazeY],
+        [mazeX + characterSize, mazeY],
+        [mazeX, mazeY + characterSize],
+        [mazeX + characterSize, mazeY + characterSize],
+        [mazeX + characterSize / 2, mazeY + characterSize / 2]
     ];
 
     for (let [sx, sy] of samples) {
@@ -175,7 +225,7 @@ function isWall(x, y) {
             return true;
         }
 
-        const pixel = offscreenCtx.getImageData(sx, sy, 1, 1).data;
+        const pixel = offscreenCtx.getImageData(Math.floor(sx), Math.floor(sy), 1, 1).data;
         // Black pixels are walls
         if (pixel[0] < 50 && pixel[1] < 50 && pixel[2] < 50) {
             return true;
@@ -189,31 +239,37 @@ function isWall(x, y) {
 function updatePosition() {
     if (!mazeLoaded) return;
 
-    let newX = characterX;
-    let newY = characterY;
+    let newMazeX = characterMazeX;
+    let newMazeY = characterMazeY;
 
-    // WASD movement
+    // WASD movement in maze coordinates
     if (keys['w']) {
-        newY -= moveSpeed;
+        newMazeY -= moveSpeed;
     }
     if (keys['s']) {
-        newY += moveSpeed;
+        newMazeY += moveSpeed;
     }
     if (keys['a']) {
-        newX -= moveSpeed;
+        newMazeX -= moveSpeed;
     }
     if (keys['d']) {
-        newX += moveSpeed;
+        newMazeX += moveSpeed;
     }
 
     // Check collision
-    if (!isWall(newX, newY)) {
-        characterX = newX;
-        characterY = newY;
-        characterCanvas.style.left = characterX + 'px';
-        characterCanvas.style.top = characterY + 'px';
+    if (!isWall(newMazeX, newMazeY)) {
+        characterMazeX = newMazeX;
+        characterMazeY = newMazeY;
+        updateCharacterScreenPosition();
     }
 }
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (mazeLoaded) {
+        updateCharacterScreenPosition();
+    }
+});
 
 // Game loop
 function gameLoop() {

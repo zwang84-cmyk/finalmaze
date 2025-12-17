@@ -37,10 +37,9 @@
             width: 100%;
             height: 100%;
             background-image: url('finalmaze/maze.png');
-            background-size: 90%;
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            background-color: #000000;
             z-index: 1;
         }
 
@@ -287,9 +286,6 @@
 
         function updatePlayer() {
             if (gameState !== 'playing') return;
-
-            // Disable movement while flashlight is active
-            if (flashlightActive) return;
 
             let newX = player.x;
             let newY = player.y;

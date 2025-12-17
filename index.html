@@ -304,21 +304,14 @@
             let gameLost = false;
             let movementFrozen = false;
 
-            // Wrong way detection state
+            // Wrong way detection state - detects being stuck in a small area
             let movementHistory = [];
-            let distanceHistory = [];
             let wrongWayCheckInterval = null;
-            const SUSTAINED_TIME = 1500; // 1.5 seconds of sustained wrong movement
+            let wrongWayEnabled = false;
+            const OBSERVATION_WINDOW = 6000; // 6 seconds observation window
             const CHECK_INTERVAL = 200; // Check every 200ms
-
-            // Calculate distance to exit
-            function getDistanceToExit() {
-                const charCenterX = posX + character.offsetWidth / 2;
-                const charCenterY = posY + character.offsetHeight / 2;
-                const exitCenterX = exitZone.x + exitZone.width / 2;
-                const exitCenterY = exitZone.y + exitZone.height / 2;
-                return Math.sqrt(Math.pow(charCenterX - exitCenterX, 2) + Math.pow(charCenterY - exitCenterY, 2));
-            }
+            const STUCK_THRESHOLD = 60; // If net displacement < 60px over 6 seconds while moving, player is stuck
+            const MIN_TOTAL_MOVEMENT = 150; // Must have moved at least 150px total to be considered "trying to move"
 
             const keysPressed = {};
 
@@ -511,37 +504,43 @@
             function startFlashlight() {
                 if (flashlightUses <= 0 || flashlightActive) return;
 
+                // Stop wrong way detection when flashlight is active
+                stopWrongWayDetection();
+                wrongWayEnabled = false;
+
                 flashlightActive = true;
                 updateFlashlightPosition();
-
-                // Start wrong way detection
-                startWrongWayDetection();
 
                 flashlightTimer = setTimeout(() => {
                     endFlashlight();
                 }, 15000);
             }
 
-            // Wrong way detection system - tracks sustained movement into dead ends
+            // Wrong way detection system - detects being stuck in a small area
+            // Only active AFTER flashlight ends (with 2 second delay)
             function startWrongWayDetection() {
                 movementHistory = [];
-                distanceHistory = [];
+                wrongWayEnabled = false;
+
+                // Wait 2 seconds after flashlight ends before enabling detection
+                setTimeout(() => {
+                    if (gameWon || gameLost || flashlightActive) return;
+                    wrongWayEnabled = true;
+                }, 2000);
 
                 wrongWayCheckInterval = setInterval(() => {
-                    if (gameWon || gameLost || movementFrozen || !flashlightActive) return;
+                    if (gameWon || gameLost || movementFrozen || flashlightActive || !wrongWayEnabled) return;
 
                     const now = Date.now();
 
-                    // Record current position and distance
+                    // Record current position
                     movementHistory.push({ x: posX, y: posY, time: now });
-                    distanceHistory.push({ distance: getDistanceToExit(), time: now });
 
-                    // Keep only last 2 seconds of history
-                    movementHistory = movementHistory.filter(p => now - p.time < 2000);
-                    distanceHistory = distanceHistory.filter(d => now - d.time < 2000);
+                    // Keep only last 6 seconds of history
+                    movementHistory = movementHistory.filter(p => now - p.time < OBSERVATION_WINDOW);
 
-                    // Check wrong way conditions
-                    if (checkWrongWayConditions()) {
+                    // Check if stuck (need at least 6 seconds of data)
+                    if (checkIfStuck()) {
                         triggerWrongWay();
                     }
                 }, CHECK_INTERVAL);
@@ -553,70 +552,49 @@
                     wrongWayCheckInterval = null;
                 }
                 movementHistory = [];
-                distanceHistory = [];
+                wrongWayEnabled = false;
             }
 
-            function checkWrongWayConditions() {
-                // Need enough history (at least 1.5 seconds worth)
-                if (movementHistory.length < 7 || distanceHistory.length < 7) return false;
+            function checkIfStuck() {
+                // Need at least 6 seconds of movement history
+                if (movementHistory.length < 25) return false; // ~5 seconds at 200ms intervals
 
                 const oldest = movementHistory[0];
                 const newest = movementHistory[movementHistory.length - 1];
                 const timeDiff = newest.time - oldest.time;
 
-                // Condition 1: Sustained movement for at least 1.5 seconds
-                if (timeDiff < SUSTAINED_TIME) return false;
+                // Must have at least 5 seconds of data
+                if (timeDiff < 5000) return false;
 
-                // Check if there's been actual movement (not standing still)
-                const totalDx = newest.x - oldest.x;
-                const totalDy = newest.y - oldest.y;
-                const totalDistance = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
-                if (totalDistance < 50) return false; // Must have moved at least 50px
+                // Calculate NET displacement (straight line from start to end)
+                const netDx = newest.x - oldest.x;
+                const netDy = newest.y - oldest.y;
+                const netDisplacement = Math.sqrt(netDx * netDx + netDy * netDy);
 
-                // Condition 2: Determine movement direction and check if heading into dead end
-                let dirX = 0, dirY = 0;
-                if (Math.abs(totalDx) > Math.abs(totalDy)) {
-                    dirX = totalDx > 0 ? 1 : -1;
-                } else {
-                    dirY = totalDy > 0 ? 1 : -1;
+                // Calculate TOTAL movement (sum of all individual movements)
+                let totalMovement = 0;
+                for (let i = 1; i < movementHistory.length; i++) {
+                    const dx = movementHistory[i].x - movementHistory[i-1].x;
+                    const dy = movementHistory[i].y - movementHistory[i-1].y;
+                    totalMovement += Math.sqrt(dx * dx + dy * dy);
                 }
 
-                // Check if path ahead is blocked (dead end corridor)
-                const checkDistances = [40, 60, 80, 100];
-                let blockedAhead = 0;
-                for (const d of checkDistances) {
-                    if (!canMoveTo(posX + dirX * d, posY + dirY * d)) {
-                        blockedAhead++;
-                    }
+                // Player is STUCK if:
+                // 1. They've been moving a lot (total movement > threshold)
+                // 2. But haven't made progress (net displacement is small)
+                // This means they're moving back and forth in the same area
+                if (totalMovement >= MIN_TOTAL_MOVEMENT && netDisplacement < STUCK_THRESHOLD) {
+                    return true;
                 }
-                // Not heading into a dead end if most of the path is open
-                if (blockedAhead < 3) return false;
 
-                // Condition 3: Not getting closer to exit during this movement
-                const oldestDist = distanceHistory[0].distance;
-                const newestDist = distanceHistory[distanceHistory.length - 1].distance;
-                // If getting significantly closer to exit, not wrong way
-                if (newestDist < oldestDist - 20) return false;
-
-                // All conditions met: sustained movement into dead end while not approaching exit
-                return true;
+                return false;
             }
 
             function triggerWrongWay() {
                 stopWrongWayDetection();
 
-                // Stop current flashlight timer
-                if (flashlightTimer) {
-                    clearTimeout(flashlightTimer);
-                    flashlightTimer = null;
-                }
-                flashlightActive = false;
-
                 // Consume a flashlight use
                 flashlightUses--;
-
-                // Switch to darkness with character glow
-                updateCharacterGlow();
 
                 // Freeze movement
                 movementFrozen = true;
@@ -646,9 +624,6 @@
             }
 
             function endFlashlight() {
-                // Stop wrong way detection
-                stopWrongWayDetection();
-
                 flashlightActive = false;
                 flashlightUses--;
 
@@ -660,10 +635,9 @@
                     flashlightTimer = null;
                 }
 
-                // Flashlight ending just switches to darkness
-                // Player continues freely with character glow
-                // Press C to use next flashlight when ready
-                // Wrong way is detected DURING gameplay, not when flashlight ends
+                // Start wrong way detection (with 2 second delay before enabling)
+                // Detects if player gets stuck moving in a small area
+                startWrongWayDetection();
             }
 
             // Press C to activate next flashlight (disabled during frozen state)

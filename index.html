@@ -73,6 +73,7 @@
 
         #startOverlay {
             background-image: url('finalmaze/start.png');
+            cursor: pointer;
         }
 
         #rightwayOverlay {
@@ -87,27 +88,6 @@
             background-image: url('finalmaze/fail.png');
             cursor: pointer;
         }
-
-        #startButton {
-            position: absolute;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 40px;
-            font-size: 24px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 2px solid white;
-            cursor: pointer;
-            font-family: inherit;
-            z-index: 11;
-            transition: all 0.3s;
-        }
-
-        #startButton:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(-50%) scale(1.05);
-        }
     </style>
 </head>
 <body>
@@ -120,7 +100,6 @@
 
         <!-- Overlays for different game states -->
         <div id="startOverlay" class="overlay active"></div>
-        <button id="startButton">Start Exploration</button>
         <div id="rightwayOverlay" class="overlay"></div>
         <div id="wrongwayOverlay" class="overlay"></div>
         <div id="failOverlay" class="overlay"></div>
@@ -166,7 +145,7 @@
         };
 
         // Event listeners
-        document.getElementById('startButton').addEventListener('click', startGame);
+        document.getElementById('startOverlay').addEventListener('click', startGame);
 
         document.getElementById('failOverlay').addEventListener('click', () => {
             resetGame();
@@ -183,7 +162,6 @@
         function startGame() {
             gameState = 'playing';
             document.getElementById('startOverlay').classList.remove('active');
-            document.getElementById('startButton').style.display = 'none';
             gameLoop();
         }
 
@@ -200,7 +178,6 @@
             document.getElementById('wrongwayOverlay').classList.remove('active');
             document.getElementById('rightwayOverlay').classList.remove('active');
             document.getElementById('startOverlay').classList.add('active');
-            document.getElementById('startButton').style.display = 'block';
         }
 
         function activateFlashlight() {

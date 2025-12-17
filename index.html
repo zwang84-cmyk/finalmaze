@@ -148,6 +148,10 @@
         // Darkness overlay
         let darknessAlpha = 0.95; // Very dark when flashlight is off
 
+        // Mouse position for flashlight
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+
         // Keys pressed
         const keys = {};
 
@@ -186,8 +190,18 @@
             keys[e.key.toLowerCase()] = false;
         });
 
+        // Track mouse position for flashlight
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
         function startGame() {
             gameState = 'playing';
+            // Auto-activate flashlight when game starts
+            flashlightActive = true;
+            darknessAlpha = 0.98;
             document.getElementById('startOverlay').classList.remove('active');
             document.getElementById('startHotspot').classList.remove('active');
             gameLoop();
@@ -274,6 +288,9 @@
         function updatePlayer() {
             if (gameState !== 'playing') return;
 
+            // Disable movement while flashlight is active
+            if (flashlightActive) return;
+
             let newX = player.x;
             let newY = player.y;
 
@@ -351,6 +368,25 @@
                 const charHeight = 40;
 
                 ctx.drawImage(characterImg, player.x, player.y, charWidth, charHeight);
+
+                // Draw darkness overlay with flashlight effect
+                if (flashlightActive) {
+                    ctx.save();
+
+                    // Create circular flashlight gradient following mouse
+                    const gradient = ctx.createRadialGradient(
+                        mouseX, mouseY, 0,
+                        mouseX, mouseY, 150
+                    );
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.5)');
+                    gradient.addColorStop(1, `rgba(0, 0, 0, ${darknessAlpha})`);
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.restore();
+                }
             }
         }
 

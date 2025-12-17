@@ -452,9 +452,7 @@
                 requestAnimationFrame(gameLoop);
             }
 
-            gameLoop();
-
-            // Flashlight system
+            // Flashlight system - declare BEFORE gameLoop starts
             let flashlightUses = 3;
             let flashlightActive = false;
             let flashlightTimer = null;
@@ -508,7 +506,7 @@
             function endFlashlight() {
                 flashlightActive = false;
                 flashlightUses--;
-                // Switch to character glow only (keep overlay visible with small glow)
+                // Switch to character glow only - darkness overlay stays active
                 updateCharacterGlow();
                 if (flashlightTimer) {
                     clearTimeout(flashlightTimer);
@@ -549,6 +547,12 @@
                     startFlashlight();
                 }
             });
+
+            // Initialize character glow first, then start flashlight
+            updateCharacterGlow();
+
+            // Start game loop
+            gameLoop();
 
             // Start flashlight immediately
             startFlashlight();

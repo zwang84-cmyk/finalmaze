@@ -503,6 +503,21 @@
                 }, 12000);
             }
 
+            // Check if player is at a true dead end (only 1 direction open)
+            function isDeadEnd() {
+                const checkDistance = moveSpeed;
+                let openDirections = 0;
+
+                // Check all 4 directions
+                if (canMoveTo(posX, posY - checkDistance)) openDirections++; // Up
+                if (canMoveTo(posX, posY + checkDistance)) openDirections++; // Down
+                if (canMoveTo(posX - checkDistance, posY)) openDirections++; // Left
+                if (canMoveTo(posX + checkDistance, posY)) openDirections++; // Right
+
+                // True dead end = only 1 direction open (the way back)
+                return openDirections <= 1;
+            }
+
             function endFlashlight() {
                 flashlightActive = false;
                 flashlightUses--;
@@ -513,7 +528,7 @@
                     flashlightTimer = null;
                 }
 
-                // If player hasn't won yet, trigger dead-end penalty
+                // If player hasn't won yet, check conditions
                 if (!gameWon) {
                     // Check for lose condition: all flashlights used
                     if (flashlightUses <= 0) {
@@ -521,23 +536,29 @@
                         return;
                     }
 
-                    // Freeze movement and show wrong way message
-                    movementFrozen = true;
+                    // Only trigger WRONG WAY if player is at a TRUE dead end
+                    if (isDeadEnd()) {
+                        // Freeze movement and show wrong way message
+                        movementFrozen = true;
 
-                    const wrongWayScreen = document.createElement('div');
-                    wrongWayScreen.id = 'wrongWayScreen';
-                    const wrongWayImg = document.createElement('img');
-                    wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
-                    wrongWayImg.alt = 'You take the wrong way';
-                    wrongWayScreen.appendChild(wrongWayImg);
-                    document.body.appendChild(wrongWayScreen);
+                        const wrongWayScreen = document.createElement('div');
+                        wrongWayScreen.id = 'wrongWayScreen';
+                        const wrongWayImg = document.createElement('img');
+                        wrongWayImg.src = 'finalmaze/finalmaze/wrongway.png';
+                        wrongWayImg.alt = 'You take the wrong way';
+                        wrongWayScreen.appendChild(wrongWayImg);
+                        document.body.appendChild(wrongWayScreen);
 
-                    // After 2 seconds, hide message and start next flashlight
-                    setTimeout(() => {
-                        wrongWayScreen.remove();
-                        movementFrozen = false;
+                        // After 2 seconds, hide message and start next flashlight
+                        setTimeout(() => {
+                            wrongWayScreen.remove();
+                            movementFrozen = false;
+                            startFlashlight();
+                        }, 2000);
+                    } else {
+                        // Not at a dead end - just start next flashlight without penalty
                         startFlashlight();
-                    }, 2000);
+                    }
                 }
             }
 

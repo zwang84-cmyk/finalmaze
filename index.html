@@ -126,17 +126,28 @@
             position: absolute;
             cursor: pointer;
         }
+
+        #flashlightHint {
+            position: absolute;
+            color: #fff;
+            font-family: Georgia, serif;
+            font-size: 18px;
+            text-align: center;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="startPage">
         <img id="startImage" src="finalmaze/finalmaze/start.png" alt="Start Page" />
         <div id="startClickArea"></div>
+        <div id="flashlightHint">Press Space to use the flashlight</div>
     </div>
 
     <script>
         const startImage = document.getElementById('startImage');
         const clickArea = document.getElementById('startClickArea');
+        const flashlightHint = document.getElementById('flashlightHint');
 
         function positionClickArea() {
             const img = startImage;
@@ -162,6 +173,11 @@
             clickArea.style.top = (rect.top + textY * scale) + 'px';
             clickArea.style.width = (textWidth * scale) + 'px';
             clickArea.style.height = (textHeight * scale) + 'px';
+
+            // Position flashlight hint below "Start Exploration"
+            flashlightHint.style.left = (rect.left + textX * scale) + 'px';
+            flashlightHint.style.top = (rect.top + (textY + textHeight) * scale + 10) + 'px';
+            flashlightHint.style.width = (textWidth * scale) + 'px';
         }
 
         startImage.onload = positionClickArea;
